@@ -417,7 +417,7 @@ export default function ContrattoStampaPage() {
       {/* CONTRATTO - Formato A4 */}
       <div ref={contractRef} className="max-w-[210mm] mx-auto bg-white print:max-w-none print:mx-0 shadow-lg print:shadow-none">
         
-        {/* ========== PAGINA 1/4 ========== */}
+        {/* ========== PAGINA 1/5 ========== */}
         <div data-page="1" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
           
           {/* HEADER */}
@@ -437,7 +437,7 @@ export default function ContrattoStampaPage() {
               </div>
               <div className="text-right">
                 <h2 className="text-xl font-bold">CONTRATTO</h2>
-                <p className="text-xs text-gray-500">Pag. 1/4</p>
+                <p className="text-xs text-gray-500">Pag. 1/5</p>
               </div>
             </div>
           </div>
@@ -748,13 +748,22 @@ export default function ContrattoStampaPage() {
             </div>
           </div>
 
+        </div>
+
+        {/* ========== PAGINA 2/5 ========== */}
+        <div data-page="2" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
+          {/* Header pagina 2 */}
+          <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
+            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
+            <span className="text-xs text-gray-500">Pag. 2/5</span>
+          </div>
+
           {/* IV. DURATA & CHILOMETRAGGIO */}
-          <div className="border border-black">
+          <div className="border border-black mb-4">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               IV. DURATA &amp; CHILOMETRAGGIO
             </div>
             <div className="grid grid-cols-3 text-xs">
-              {/* Periodo di noleggio - NON MODIFICABILE */}
               <div className="border-r border-black p-3">
                 <div className="font-bold mb-2">Periodo di noleggio</div>
                 <p>
@@ -764,7 +773,6 @@ export default function ContrattoStampaPage() {
                 <p><span className="text-gray-600">Dal:</span> {formatDateIT(p.data_ritiro)} ore {p.ora_ritiro}</p>
                 <p><span className="text-gray-600">Al:</span> {formatDateIT(p.data_riconsegna)} ore {p.ora_riconsegna}</p>
               </div>
-              {/* Chilometraggio - MODIFICABILE */}
               <div className="border-r border-black p-3">
                 <div className="font-bold mb-2">Chilometraggio</div>
                 <p>
@@ -808,7 +816,6 @@ export default function ContrattoStampaPage() {
                   )}
                 </p>
               </div>
-              {/* Deposito & acconti - MODIFICABILE */}
               <div className="p-3 bg-gray-50">
                 <div className="font-bold mb-2">Deposito &amp; acconti</div>
                 <p>
@@ -821,15 +828,6 @@ export default function ContrattoStampaPage() {
                 </p>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* ========== PAGINA 2/4 ========== */}
-        <div data-page="2" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
-          {/* Header pagina 2 */}
-          <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
-            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 2/4</span>
           </div>
 
           {/* V. CORRISPETTIVO & SERVIZI */}
@@ -1161,6 +1159,14 @@ export default function ContrattoStampaPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ========== PAGINA 3/5 ========== */}
+        <div data-page="3" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
+          <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
+            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
+            <span className="text-xs text-gray-500">Pag. 3/5</span>
+          </div>
 
           {/* VII. DANNI PREESISTENTI */}
           <div className="border border-black mb-4">
@@ -1372,56 +1378,56 @@ export default function ContrattoStampaPage() {
           </div>
         </div>
 
-        {/* ========== PAGINA 3/4 - CONDIZIONI GENERALI ========== */}
-        <div data-page="3" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
+        {/* ========== PAGINA 4/5 - CONDIZIONI GENERALI ========== */}
+        <div data-page="4" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
           <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
             <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 3/4</span>
+            <span className="text-xs text-gray-500">Pag. 4/5</span>
           </div>
 
           <div className="border border-black">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               IX. CONDIZIONI GENERALI DI NOLEGGIO
             </div>
-            <div className="p-3 text-xs leading-relaxed" style={{ fontSize: '8pt', lineHeight: '1.4' }}>
-              <p className="mb-2"><strong>1.</strong> La società RE.LE.CO. Group SRL in seguito definita Locatrice, concede in noleggio alla persona che sottoscrive il presente contratto, in nome proprio ovvero in qualità di legale rappresentate della società indicata, in seguito definita Conduttore, il veicolo descritto nel contratto stesso.</p>
+            <div className="p-2 leading-relaxed" style={{ fontSize: '6.5pt', lineHeight: '1.3' }}>
+              <p className="mb-1"><strong>1.</strong> La società RE.LE.CO. Group SRL in seguito definita Locatrice, concede in noleggio alla persona che sottoscrive il presente contratto, in nome proprio ovvero in qualità di legale rappresentate della società indicata, in seguito definita Conduttore, il veicolo descritto nel contratto stesso.</p>
               
-              <p className="mb-2"><strong>2.</strong> Il Conduttore dichiara che il veicolo, al momento della presa in consegna, si trova in buone condizioni di meccanica e di carrozzeria. Pertanto si obbliga a riconsegnarlo nello stesso stato in cui l'ha ricevuto, salvo il normale deterioramento dovuto all'uso, segnalando per iscritto alla Locatrice gli eventuali danni o anomalie.</p>
+              <p className="mb-1"><strong>2.</strong> Il Conduttore dichiara che il veicolo, al momento della presa in consegna, si trova in buone condizioni di meccanica e di carrozzeria. Pertanto si obbliga a riconsegnarlo nello stesso stato in cui l'ha ricevuto, salvo il normale deterioramento dovuto all'uso, segnalando per iscritto alla Locatrice gli eventuali danni o anomalie.</p>
               
-              <p className="mb-2"><strong>3.</strong> Il conduttore, all'atto della stipula del presente contratto di noleggio, dichiara di essere abilitato alla guida del veicolo noleggiato e si obbliga a presentare la relativa patente di guida in corso di validità. L'età minima per l'ammissione alla sottoscrizione del presente contratto è fissata in anni 21.</p>
+              <p className="mb-1"><strong>3.</strong> Il conduttore, all'atto della stipula del presente contratto di noleggio, dichiara di essere abilitato alla guida del veicolo noleggiato e si obbliga a presentare la relativa patente di guida in corso di validità. L'età minima per l'ammissione alla sottoscrizione del presente contratto è fissata in anni 21.</p>
               
-              <p className="mb-2"><strong>4.</strong> La durata del noleggio è stabilita dal momento del ritiro del veicolo e fino alla data di riconsegna prevista indicata nel contratto. Qualora il Conduttore avesse esigenza di prolungare il periodo di noleggio stabilito in sede contrattuale, dovrà darne comunicazione alla Locatrice con almeno 24 ore di anticipo sulla scadenza del contratto stesso. In tal caso la Locatrice ha facoltà di non accogliere tale richiesta. In caso di inadempimento da parte del Conduttore delle obbligazioni sottoscritte con il presente contratto, la Locatrice ha la facoltà di risolvere di diritto il contratto stesso, inviando apposita comunicazione ai sensi dell'articolo 1456 del codice civile. Qualora al termine del periodo di noleggio concordato il Conduttore non restituisca il veicolo, la Locatrice si riserva il diritto di richiederne l'immediata riconsegna a mezzo telegramma, raccomandata A/R, PEC o Telefax. Trascorsi tre giorni dal ricevimento da parte del Conduttore della comunicazione citata senza che la Locatrice riceva valide spiegazioni in merito alla mancata riconsegna del veicolo, la stessa potrà presentare all'autorità competente denuncia/querela per l'appropriazione indebita del veicolo. In ogni caso il Conduttore sarà tenuto a versare, per ogni giorno in più, dal termine previsto per la riconsegna fino alla restituzione effettiva, il costo della tariffa a prezzo raddoppiato a titolo di penale per la ritardata restituzione del veicolo, oltre al risarcimento di eventuali danni maggiori. In caso di riconsegna dell'autovettura con ritardo rispetto all'orario stabilito in sede contrattuale, il Conduttore sarà obbligato al pagamento di una penale pari a 30€ per le prime tre ore di ritardo. Superate le tre ore di ritardo, viene applicata una penale pari all'importo della tariffa giornaliera prevista dal contratto sottoscritto. Il conduttore all'inizio del noleggio è obbligato a versare un deposito cauzionale che garantisca l'adempimento dei propri obblighi contrattuali pari a euro 1000 (mille).</p>
+              <p className="mb-1"><strong>4.</strong> La durata del noleggio è stabilita dal momento del ritiro del veicolo e fino alla data di riconsegna prevista indicata nel contratto. Qualora il Conduttore avesse esigenza di prolungare il periodo di noleggio stabilito in sede contrattuale, dovrà darne comunicazione alla Locatrice con almeno 24 ore di anticipo sulla scadenza del contratto stesso. In tal caso la Locatrice ha facoltà di non accogliere tale richiesta. In caso di inadempimento da parte del Conduttore delle obbligazioni sottoscritte con il presente contratto, la Locatrice ha la facoltà di risolvere di diritto il contratto stesso, inviando apposita comunicazione ai sensi dell'articolo 1456 del codice civile. Qualora al termine del periodo di noleggio concordato il Conduttore non restituisca il veicolo, la Locatrice si riserva il diritto di richiederne l'immediata riconsegna a mezzo telegramma, raccomandata A/R, PEC o Telefax. Trascorsi tre giorni dal ricevimento da parte del Conduttore della comunicazione citata senza che la Locatrice riceva valide spiegazioni in merito alla mancata riconsegna del veicolo, la stessa potrà presentare all'autorità competente denuncia/querela per l'appropriazione indebita del veicolo. In ogni caso il Conduttore sarà tenuto a versare, per ogni giorno in più, dal termine previsto per la riconsegna fino alla restituzione effettiva, il costo della tariffa a prezzo raddoppiato a titolo di penale per la ritardata restituzione del veicolo, oltre al risarcimento di eventuali danni maggiori. In caso di riconsegna dell'autovettura con ritardo rispetto all'orario stabilito in sede contrattuale, il Conduttore sarà obbligato al pagamento di una penale pari a 30€ per le prime tre ore di ritardo. Superate le tre ore di ritardo, viene applicata una penale pari all'importo della tariffa giornaliera prevista dal contratto sottoscritto. Il conduttore all'inizio del noleggio è obbligato a versare un deposito cauzionale che garantisca l'adempimento dei propri obblighi contrattuali pari a euro 1000 (mille).</p>
               
-              <p className="mb-2"><strong>5.</strong> Il corrispettivo totale del noleggio sarà determinato alla stipula del contratto allegato, in base alle tariffe in vigore e dovrà essere immediatamente pagato alla Locatrice che si impegna a rilasciare regolare documento fiscale. Il pagamento dovrà essere effettuato con carta di credito. Nel caso di mancato pagamento del canone di noleggio, la Locatrice è autorizzata, previa comunicazione scritta (e-mail, fax o sms), all'incasso delle somme dovute mediante l'utilizzo diretto della carta di credito concessa a titolo di garanzia. Qualora il Conduttore richieda la consegna e/o la riconsegna del veicolo in luogo diverso della Locatrice, tutte le spese di trasferimento saranno a completo carico del Conduttore stesso.</p>
+              <p className="mb-1"><strong>5.</strong> Il corrispettivo totale del noleggio sarà determinato alla stipula del contratto allegato, in base alle tariffe in vigore e dovrà essere immediatamente pagato alla Locatrice che si impegna a rilasciare regolare documento fiscale. Il pagamento dovrà essere effettuato con carta di credito. Nel caso di mancato pagamento del canone di noleggio, la Locatrice è autorizzata, previa comunicazione scritta (e-mail, fax o sms), all'incasso delle somme dovute mediante l'utilizzo diretto della carta di credito concessa a titolo di garanzia. Qualora il Conduttore richieda la consegna e/o la riconsegna del veicolo in luogo diverso della Locatrice, tutte le spese di trasferimento saranno a completo carico del Conduttore stesso.</p>
               
-              <p className="mb-2"><strong>6.</strong> Le spese per il carburante sono a totale carico del Conduttore.</p>
+              <p className="mb-1"><strong>6.</strong> Le spese per il carburante sono a totale carico del Conduttore.</p>
               
-              <p className="mb-2"><strong>7.</strong> Il conduttore si impegna ad utilizzare il veicolo noleggiato con diligenza e nel pieno rispetto dell'uso per cui è stato omologato. Il conduttore si impegna inoltre a non far guidare il veicolo noleggiato a terze persone, siano esse anche familiari oppure amici. Contravvenendo quanto sopra il Conduttore sarà ritenuto responsabile dei danni eventualmente arrecati sia all'autoveicolo noleggiato che a terzi.</p>
+              <p className="mb-1"><strong>7.</strong> Il conduttore si impegna ad utilizzare il veicolo noleggiato con diligenza e nel pieno rispetto dell'uso per cui è stato omologato. Il conduttore si impegna inoltre a non far guidare il veicolo noleggiato a terze persone, siano esse anche familiari oppure amici. Contravvenendo quanto sopra il Conduttore sarà ritenuto responsabile dei danni eventualmente arrecati sia all'autoveicolo noleggiato che a terzi.</p>
               
-              <p className="mb-2"><strong>8.</strong> Le riparazioni e manutenzione sia ordinarie che straordinarie del veicolo noleggiato vengono effettuate dalla Locatrice. In caso di necessità urgenti vi può provvedere il Conduttore dietro autorizzazione scritta della Locatrice. Il Conduttore si obbliga a risarcire eventuali danni al veicolo noleggiato causati dal mancato rispetto delle norme previste dal libretto "uso e manutenzione" in dotazione al veicolo stesso. Il Conduttore si impegna inoltre a non effettuare modifiche di qualsiasi genere al veicolo noleggiato. In particolare, il Cliente si assume l'obbligo di risarcire: i danni derivanti dal rifornimento effettuato con carburante diverso da quello previsto per il motoveicolo o autovettura noleggiato; i danni derivanti da interventi di riparazione eseguiti o fatti eseguire direttamente dal Cliente senza il consenso scritto della locatrice; Nel caso in cui vengano riscontrati sul motoveicolo o autovettura danni di qualunque sorta, la ditta viene fin d'ora autorizzata a prelevare senza preavviso la cifra corrispondente all'importo dovuto sulla carta di credito del Cliente.</p>
+              <p className="mb-1"><strong>8.</strong> Le riparazioni e manutenzione sia ordinarie che straordinarie del veicolo noleggiato vengono effettuate dalla Locatrice. In caso di necessità urgenti vi può provvedere il Conduttore dietro autorizzazione scritta della Locatrice. Il Conduttore si obbliga a risarcire eventuali danni al veicolo noleggiato causati dal mancato rispetto delle norme previste dal libretto "uso e manutenzione" in dotazione al veicolo stesso. Il Conduttore si impegna inoltre a non effettuare modifiche di qualsiasi genere al veicolo noleggiato. In particolare, il Cliente si assume l'obbligo di risarcire: i danni derivanti dal rifornimento effettuato con carburante diverso da quello previsto per il motoveicolo o autovettura noleggiato; i danni derivanti da interventi di riparazione eseguiti o fatti eseguire direttamente dal Cliente senza il consenso scritto della locatrice; Nel caso in cui vengano riscontrati sul motoveicolo o autovettura danni di qualunque sorta, la ditta viene fin d'ora autorizzata a prelevare senza preavviso la cifra corrispondente all'importo dovuto sulla carta di credito del Cliente.</p>
               
-              <p className="mb-2"><strong>9.</strong> Il conduttore dichiara di aver constatato che il veicolo noleggiato è regolarmente assicurato per la RCA nel rispetto delle condizioni e dei massimali previsti dalle Legge e si obbliga al pagamento delle somme dovute nel caso in cui il sinistro comporti un indennizzo superiore a quanto previsto dalla polizza. Nel caso in cui l'autovettura, al momento della riconsegna presenti danni alla carrozzeria, agli interni e/o alla parte meccanica, riconducibili alla responsabilità del Conduttore, lo stesso sarà obbligato a risarcire i danni riscontrati al mezzo, mediante l'utilizzo diretto da parte del locatore della carta di credito concessa a titolo di garanzia. In caso di sinistri a seguito di collisioni e/o ribaltamenti, il Conduttore dovrà compilare in ogni sua parte gli appositi moduli esistenti a bordo del veicolo noleggiato e contemporaneamente dovrà avvisare la Locatrice descrivendo il luogo e le cause dell'evento, indicando il nome di eventuali terze persone presenti al sinistro, specificando i danni riportati dagli automezzi, alle persone, alle cose e l'eventuale autorità intervenuta. Il Conduttore è tenuto a fornire la massima collaborazione alla Locatrice ed ai suoi assicuratori nelle investigazioni, nelle difese e nelle controversie derivanti dall'uso del veicolo noleggiato.</p>
+              <p className="mb-1"><strong>9.</strong> Il conduttore dichiara di aver constatato che il veicolo noleggiato è regolarmente assicurato per la RCA nel rispetto delle condizioni e dei massimali previsti dalle Legge e si obbliga al pagamento delle somme dovute nel caso in cui il sinistro comporti un indennizzo superiore a quanto previsto dalla polizza. Nel caso in cui l'autovettura, al momento della riconsegna presenti danni alla carrozzeria, agli interni e/o alla parte meccanica, riconducibili alla responsabilità del Conduttore, lo stesso sarà obbligato a risarcire i danni riscontrati al mezzo, mediante l'utilizzo diretto da parte del locatore della carta di credito concessa a titolo di garanzia. In caso di sinistri a seguito di collisioni e/o ribaltamenti, il Conduttore dovrà compilare in ogni sua parte gli appositi moduli esistenti a bordo del veicolo noleggiato e contemporaneamente dovrà avvisare la Locatrice descrivendo il luogo e le cause dell'evento, indicando il nome di eventuali terze persone presenti al sinistro, specificando i danni riportati dagli automezzi, alle persone, alle cose e l'eventuale autorità intervenuta. Il Conduttore è tenuto a fornire la massima collaborazione alla Locatrice ed ai suoi assicuratori nelle investigazioni, nelle difese e nelle controversie derivanti dall'uso del veicolo noleggiato.</p>
               
-              <p className="mb-2"><strong>10.</strong> Al verificarsi di un furto o incendio del veicolo noleggiato, il Conduttore si impegna ad effettuare immediata denuncia alle autorità competenti e a consegnare od inviare copia della copertura assicurativa alla Locatrice. La Locatrice si riserva il diritto di rivalersi sul Conduttore qualora la copertura assicurativa divenisse inoperante per colpa o incuria, diretta o indiretta, attribuita alla Compagnia di assicurazione del conduttore stesso.</p>
+              <p className="mb-1"><strong>10.</strong> Al verificarsi di un furto o incendio del veicolo noleggiato, il Conduttore si impegna ad effettuare immediata denuncia alle autorità competenti e a consegnare od inviare copia della copertura assicurativa alla Locatrice. La Locatrice si riserva il diritto di rivalersi sul Conduttore qualora la copertura assicurativa divenisse inoperante per colpa o incuria, diretta o indiretta, attribuita alla Compagnia di assicurazione del conduttore stesso.</p>
               
-              <p className="mb-2"><strong>11.</strong> Le comunicazioni alla Locatrice di sinistro, furto, incendio, dovranno essere effettuate dal Conduttore nel più breve tempo possibile a mezzo telegramma, telefax. Qualora si verifichi uno dei suddetti eventi, sarà a carico del Cliente l'eventuale franchigia assicurativa (pari ad €250,00 oltre spese amministrative di €150,00) o scopertura assicurativa (pari al 20%) del valore commerciale del veicolo, prevista dalla polizza assicurativa in ordine alla garanzia furto e incendio (pari al 20%) del valore commerciale del veicolo.</p>
+              <p className="mb-1"><strong>11.</strong> Le comunicazioni alla Locatrice di sinistro, furto, incendio, dovranno essere effettuate dal Conduttore nel più breve tempo possibile a mezzo telegramma, telefax. Qualora si verifichi uno dei suddetti eventi, sarà a carico del Cliente l'eventuale franchigia assicurativa (pari ad €250,00 oltre spese amministrative di €150,00) o scopertura assicurativa (pari al 20%) del valore commerciale del veicolo, prevista dalla polizza assicurativa in ordine alla garanzia furto e incendio (pari al 20%) del valore commerciale del veicolo.</p>
               
-              <p className="mb-2"><strong>12.</strong> La locatrice non sarà ritenuta responsabile per perdite o danni a cose o animali lasciati all'interno o sopra il veicolo noleggiato.</p>
+              <p className="mb-1"><strong>12.</strong> La locatrice non sarà ritenuta responsabile per perdite o danni a cose o animali lasciati all'interno o sopra il veicolo noleggiato.</p>
               
-              <p className="mb-2"><strong>13.</strong> Il Conduttore si impegna a pagare tutte le ammende o le contravvenzioni elevate in relazione all'uso del veicolo noleggiato e a tenere indenne la Locatrice in caso di sequestro o di qualsiasi altro evento pregiudizievole. Il Conduttore è obbligato a rimborsare alla Locatrice quanto da essa anticipato per il pagamento di infrazioni dallo stesso commesse con conseguente liquidazione mediante utilizzo di carta di credito concessa a titolo di garanzia, ovvero in contante. In ogni caso il Conduttore è tenuto ad osservare diligentemente le normative previste dal codice della strada. Viene fin d'ora autorizzata a prelevare la cifra corrispondente all'importo dovuto sulla carta di credito del Cliente, oltre le somme inerenti alle spese amministrative di comunicazioni intercorse tra ente, organo di polizia o società gestionarie che ha sollevato la sanzione o il credito (somme amministrative di gestione pari ad €25,00 oltre IVA).</p>
+              <p className="mb-1"><strong>13.</strong> Il Conduttore si impegna a pagare tutte le ammende o le contravvenzioni elevate in relazione all'uso del veicolo noleggiato e a tenere indenne la Locatrice in caso di sequestro o di qualsiasi altro evento pregiudizievole. Il Conduttore è obbligato a rimborsare alla Locatrice quanto da essa anticipato per il pagamento di infrazioni dallo stesso commesse con conseguente liquidazione mediante utilizzo di carta di credito concessa a titolo di garanzia, ovvero in contante. In ogni caso il Conduttore è tenuto ad osservare diligentemente le normative previste dal codice della strada. Viene fin d'ora autorizzata a prelevare la cifra corrispondente all'importo dovuto sulla carta di credito del Cliente, oltre le somme inerenti alle spese amministrative di comunicazioni intercorse tra ente, organo di polizia o società gestionarie che ha sollevato la sanzione o il credito (somme amministrative di gestione pari ad €25,00 oltre IVA).</p>
               
-              <p className="mb-2"><strong>14.</strong> Per qualsiasi controversia in merito al presente contratto le parti dichiarano competente il Foro della stessa città della società di noleggio.</p>
+              <p className="mb-1"><strong>14.</strong> Per qualsiasi controversia in merito al presente contratto le parti dichiarano competente il Foro della stessa città della società di noleggio.</p>
               
-              <p className="mb-2"><strong>15.</strong> Per quanto non previsto nel presente contratto si fa riferimento alle norme del codice civile. Il Conduttore, con la sottoscrizione del presente contratto, dichiara di approvare pienamente e senza riserve quanto in esso contenuto. Agli effetti degli artt. 1341 e 1342 del C.C. il sottoscritto dichiara di approvare specificatamente le disposizioni dei seguenti articoli, delle condizioni contenute nel modello di cui sopra; art. 7 divieto di far guidare il veicolo ad altre persone - art.10 rivalsa sul Conduttore nel caso che la copertura assicurativa venisse inoperante - art. 11 pagamento dell'eventuale franchigia da parte del conduttore - art. 14 Il Conduttore si impegna a pagare tutte le ammende.</p>
+              <p className="mb-1"><strong>15.</strong> Per quanto non previsto nel presente contratto si fa riferimento alle norme del codice civile. Il Conduttore, con la sottoscrizione del presente contratto, dichiara di approvare pienamente e senza riserve quanto in esso contenuto. Agli effetti degli artt. 1341 e 1342 del C.C. il sottoscritto dichiara di approvare specificatamente le disposizioni dei seguenti articoli, delle condizioni contenute nel modello di cui sopra; art. 7 divieto di far guidare il veicolo ad altre persone - art.10 rivalsa sul Conduttore nel caso che la copertura assicurativa venisse inoperante - art. 11 pagamento dell'eventuale franchigia da parte del conduttore - art. 14 Il Conduttore si impegna a pagare tutte le ammende.</p>
             </div>
           </div>
         </div>
 
-        {/* ========== PAGINA 4/4 - FIRME ========== */}
-        <div data-page="4" className="p-8 print:p-6" style={{ minHeight: '297mm' }}>
+        {/* ========== PAGINA 5/5 - FIRME ========== */}
+        <div data-page="5" className="p-8 print:p-6" style={{ minHeight: '297mm' }}>
           <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
             <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 4/4</span>
+            <span className="text-xs text-gray-500">Pag. 5/5</span>
           </div>
 
           <div className="border border-black mb-8">
