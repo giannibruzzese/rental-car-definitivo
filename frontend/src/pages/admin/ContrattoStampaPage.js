@@ -1,0 +1,1501 @@
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Printer, ArrowLeft, Save, Edit2, X, Download, Loader2, Car } from 'lucide-react';
+import { toast } from 'sonner';
+import axios from 'axios';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
+const API = process.env.REACT_APP_BACKEND_URL;
+
+// Helper per formattare la data in DD/MM/YYYY
+const formatDateIT = (dateStr) => {
+  if (!dateStr) return '';
+  // Se è già in formato DD/MM/YYYY, restituisci così com'è
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+  // Se è in formato YYYY-MM-DD, converti
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  }
+  return dateStr;
+};
+
+// ============ DISEGNO VEICOLO - IMMAGINI ORIGINALI ============
+
+const VeicoloSchemaCompleto = () => (
+  <div className="vehicle-schema bg-white">
+    <div className="grid grid-cols-2 gap-4">
+      
+      {/* VISTA LATERALE / FRONTALE */}
+      <div className="border border-dashed border-gray-300 rounded-lg p-2 bg-white">
+        <img 
+          src="/images/vista_laterale.png"
+          alt="Vista laterale / frontale"
+          className="w-full h-auto"
+          style={{ maxHeight: '280px', objectFit: 'contain' }}
+        />
+        <div className="text-center text-xs text-gray-500 mt-1">Vista laterale / frontale</div>
+      </div>
+
+      {/* VISTA DALL'ALTO / INTERNI */}
+      <div className="border border-dashed border-gray-300 rounded-lg p-2 bg-white">
+        <img 
+          src="/images/vista_alto.png"
+          alt="Vista dall'alto / interni"
+          className="w-full h-auto"
+          style={{ maxHeight: '280px', objectFit: 'contain' }}
+        />
+        <div className="text-center text-xs text-gray-500 mt-1">Vista dall'alto / interni</div>
+      </div>
+    </div>
+  </div>
+);
+
+// ============ COMPONENTE PRINCIPALE ============
+export default function ContrattoStampaPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { token } = useAuth();
+  const [prenotazione, setPrenotazione] = useState(null);
+  const [cliente, setCliente] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState({});
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [veicoli, setVeicoli] = useState([]);
+  const contractRef = useRef(null);
+  
+  // Dati agenzia FISSI per il contratto (come da richiesta)
+  const AGENCY = {
+    nome: "RE.LE.CO. GROUP",
+    indirizzo: "CORSO UMBERTO, 220",
+    cap: "88068",
+    comune: "SOVERATO",
+    provincia: "CZ",
+    regione: "CALABRIA",
+    piva: "03406230791",
+    cf: "03406230791",
+    telefono: "3342370420",
+    email: "relecogroup@libero.it"
+  };
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    
+    const fetchData = async () => {
+      try {
+        // Fetch prenotazione
+        const prenotazioneRes = await axios.get(`${API}/api/prenotazioni/${id}`, { 
+          headers: { Authorization: `Bearer ${token}` } 
+        });
+        setPrenotazione(prenotazioneRes.data);
+        setEditedData(prenotazioneRes.data);
+        
+        // Fetch cliente
+        if (prenotazioneRes.data.cliente_id) {
+          const clienteRes = await axios.get(`${API}/api/clienti/${prenotazioneRes.data.cliente_id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setCliente(clienteRes.data);
+        }
+        
+        // Fetch veicoli disponibili per il dropdown
+        const veicoliRes = await axios.get(`${API}/api/vehicles`);
+        setVeicoli(veicoliRes.data || []);
+        
+      } catch (error) {
+        console.error('Errore:', error);
+        if (error.response?.status === 401) navigate('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id, token, navigate]);
+
+  const handlePrint = () => window.print();
+
+  const handleDownloadPDF = async () => {
+    if (!contractRef.current) return;
+    
+    setGeneratingPdf(true);
+    toast.info('Generazione PDF in corso... Attendere il caricamento delle immagini.');
+    
+    try {
+      // Hide toolbar and any Emergent branding/badges
+      const toolbar = document.querySelector('.print\\:hidden');
+      if (toolbar) toolbar.style.display = 'none';
+      
+      // Hide any "Made with Emergent" badge
+      const emergentBadges = document.querySelectorAll('[class*="emergent"], [id*="emergent"], [data-emergent]');
+      emergentBadges.forEach(el => el.style.display = 'none');
+      
+      // Also hide by searching for the specific text
+      const allElements = document.querySelectorAll('*');
+      const hiddenElements = [];
+      allElements.forEach(el => {
+        if (el.textContent && el.textContent.includes('Made with Emergent') && el.children.length === 0) {
+          const parent = el.closest('div, span, a, button');
+          if (parent && !hiddenElements.includes(parent)) {
+            parent.style.setProperty('display', 'none', 'important');
+            hiddenElements.push(parent);
+          }
+        }
+      });
+      
+      // Wait for all images to load
+      const images = contractRef.current.querySelectorAll('img');
+      await Promise.all([...images].map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+          // Timeout after 5 seconds
+          setTimeout(resolve, 5000);
+        });
+      }));
+      
+      // Small delay to ensure rendering is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get all pages inside the contract
+      const contractElement = contractRef.current;
+      const pages = contractElement.querySelectorAll('[data-page]');
+      
+      // Create PDF with A4 dimensions
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const pdfWidth = 210; // A4 width in mm
+      const pdfHeight = 297; // A4 height in mm
+      
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        
+        // Capture each page with high quality
+        const canvas = await html2canvas(page, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          imageTimeout: 15000,
+          onclone: (clonedDoc) => {
+            // Remove any remaining branding from cloned document
+            const badges = clonedDoc.querySelectorAll('[class*="emergent"], [id*="emergent"]');
+            badges.forEach(el => el.remove());
+          }
+        });
+        
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        
+        // Calculate dimensions maintaining aspect ratio
+        const imgWidth = pdfWidth;
+        const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        if (i > 0) {
+          pdf.addPage();
+        }
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight));
+      }
+      
+      // Download the PDF
+      pdf.save(`contratto_${prenotazione.veicolo_targa}_${prenotazione.data_ritiro}.pdf`);
+      toast.success('PDF scaricato con successo!');
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Errore nella generazione del PDF');
+    } finally {
+      // Restore toolbar and hidden elements
+      const toolbar = document.querySelector('.print\\:hidden');
+      if (toolbar) toolbar.style.display = '';
+      
+      // Restore hidden badges (they'll be hidden again on next generation if needed)
+      const emergentBadges = document.querySelectorAll('[class*="emergent"], [id*="emergent"], [data-emergent]');
+      emergentBadges.forEach(el => el.style.display = '');
+      
+      setGeneratingPdf(false);
+    }
+  };
+
+  const handleSaveEdits = async () => {
+    try {
+      // Prepara TUTTI i campi modificabili del contratto
+      const updatePayload = {
+        contratto_check_in: editedData.contratto_check_in,
+        contratto_check_out: editedData.contratto_check_out,
+        data_ritiro: editedData.data_ritiro,
+        ora_ritiro: editedData.ora_ritiro,
+        data_riconsegna: editedData.data_riconsegna,
+        ora_riconsegna: editedData.ora_riconsegna,
+        durata_giorni: editedData.durata_giorni,
+        km_uscita: editedData.km_uscita,
+        km_inclusi_totali: editedData.km_inclusi_totali,
+        prezzo_km_extra: editedData.prezzo_km_extra,
+        tacche_carburante_uscita: editedData.tacche_carburante_uscita,
+        danni_preesistenti: editedData.danni_preesistenti,
+        veicolo_colore: editedData.veicolo_colore,
+        veicolo_cambio: editedData.veicolo_cambio,
+        veicolo_alimentazione: editedData.veicolo_alimentazione,
+        veicolo_marca: editedData.veicolo_marca,
+        veicolo_modello: editedData.veicolo_modello,
+        veicolo_targa: editedData.veicolo_targa,
+        tariffa_base: editedData.tariffa_base,
+        totale_servizi: editedData.totale_servizi,
+        totale_franchigie: editedData.totale_franchigie,
+        acconto: editedData.acconto,
+        deposito_cauzionale: editedData.deposito_cauzionale,
+        luogo_ritiro: editedData.luogo_ritiro,
+        indirizzo_ritiro: editedData.indirizzo_ritiro,
+        luogo_riconsegna: editedData.luogo_riconsegna,
+        indirizzo_riconsegna: editedData.indirizzo_riconsegna,
+        note: editedData.note,
+        // Dati cliente editabili nel contratto
+        cliente_dati_contratto: editedData.cliente_dati_contratto,
+        // CARTA DI CREDITO
+        carta_circuito: editedData.carta_circuito,
+        carta_intestatario: editedData.carta_intestatario,
+        carta_numero: editedData.carta_numero,
+        carta_scadenza_mese: editedData.carta_scadenza_mese,
+        carta_scadenza_anno: editedData.carta_scadenza_anno,
+        // GARANTE
+        garante_nome: editedData.garante_nome,
+        garante_recapiti: editedData.garante_recapiti,
+        garante_documento: editedData.garante_documento,
+        // METODO PAGAMENTO
+        pagamento_contanti: editedData.pagamento_contanti,
+        pagamento_carta: editedData.pagamento_carta,
+        pagamento_bonifico: editedData.pagamento_bonifico,
+        pagamento_altro: editedData.pagamento_altro,
+        pagamento_altro_desc: editedData.pagamento_altro_desc
+      };
+      
+      await axios.put(`${API}/api/prenotazioni/${id}/admin-update`, updatePayload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPrenotazione({...prenotazione, ...updatePayload});
+      setIsEditing(false);
+      toast.success('Modifiche salvate!');
+    } catch (error) {
+      console.error('Errore salvataggio:', error);
+      toast.error('Errore nel salvataggio');
+    }
+  };
+
+  const updateField = (field, value) => {
+    setEditedData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Funzione per cambiare veicolo e aggiornare automaticamente tutti i costi
+  const handleVeicoloChange = (veicoloId) => {
+    const veicolo = veicoli.find(v => v.id === veicoloId);
+    if (!veicolo) return;
+    
+    const durata = editedData.durata_giorni || prenotazione.durata_giorni || 1;
+    const tariffaGiornaliera = veicolo.tariffa_giornaliera || veicolo.base_price || 50;
+    const kmInclusiGiorno = veicolo.km_inclusi_giorno || 200;
+    const prezzoKmExtra = veicolo.prezzo_km_extra || 0.20;
+    const depositoCauzionale = veicolo.deposito_cauzionale || 500;
+    
+    // Calcola nuova tariffa base
+    const nuovaTariffaBase = tariffaGiornaliera * durata;
+    const nuoviKmInclusi = kmInclusiGiorno * durata;
+    
+    // Aggiorna tutti i campi del veicolo e i costi
+    setEditedData(prev => ({
+      ...prev,
+      veicolo_id: veicoloId,
+      veicolo_marca: veicolo.marca,
+      veicolo_modello: veicolo.modello,
+      veicolo_targa: veicolo.targa,
+      veicolo_colore: veicolo.colore || '',
+      veicolo_cambio: veicolo.cambio || '',
+      veicolo_alimentazione: veicolo.alimentazione || '',
+      tariffa_giornaliera: tariffaGiornaliera,
+      tariffa_base: nuovaTariffaBase,
+      km_inclusi_giorno: kmInclusiGiorno,
+      km_inclusi_totali: nuoviKmInclusi,
+      prezzo_km_extra: prezzoKmExtra,
+      deposito_cauzionale: depositoCauzionale,
+      totale_noleggio: nuovaTariffaBase + (prev.totale_servizi || 0) + (prev.totale_franchigie || 0)
+    }));
+    
+    toast.success(`Veicolo cambiato: ${veicolo.marca} ${veicolo.modello} - €${tariffaGiornaliera}/giorno`);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!prenotazione) {
+    return <div className="p-8 text-center text-red-600">Prenotazione non trovata</div>;
+  }
+
+  const p = isEditing ? editedData : prenotazione;
+  const patente = cliente?.patente || {};
+  const today = new Date().toLocaleDateString('it-IT');
+  
+  // Dati cliente per contratto (possono essere sovrascritti)
+  const clienteContratto = p.cliente_dati_contratto || cliente || {};
+  const updateClienteField = (field, value) => {
+    const current = editedData.cliente_dati_contratto || { ...cliente };
+    setEditedData(prev => ({
+      ...prev,
+      cliente_dati_contratto: { ...current, [field]: value }
+    }));
+  };
+  const updateClientePatenteField = (field, value) => {
+    const current = editedData.cliente_dati_contratto || { ...cliente };
+    const currentPatente = current.patente || { ...patente };
+    setEditedData(prev => ({
+      ...prev,
+      cliente_dati_contratto: { 
+        ...current, 
+        patente: { ...currentPatente, [field]: value }
+      }
+    }));
+  };
+  const patenteContratto = clienteContratto?.patente || patente;
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* TOOLBAR - nascosta in stampa */}
+      <div className="print:hidden sticky top-0 z-50 bg-white border-b shadow-sm p-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> Torna Indietro
+          </Button>
+          <div className="flex gap-2">
+            {isEditing ? (
+              <>
+                <Button variant="outline" onClick={() => setIsEditing(false)}>
+                  <X className="w-4 h-4 mr-2" /> Annulla
+                </Button>
+                <Button onClick={handleSaveEdits} className="bg-green-600 hover:bg-green-700">
+                  <Save className="w-4 h-4 mr-2" /> Salva Modifiche
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setIsEditing(true)}>
+                  <Edit2 className="w-4 h-4 mr-2" /> Modifica Contratto
+                </Button>
+                <Button onClick={handleDownloadPDF} variant="outline" disabled={generatingPdf}>
+                  {generatingPdf ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generazione...</>
+                  ) : (
+                    <><Download className="w-4 h-4 mr-2" /> Scarica PDF</>
+                  )}
+                </Button>
+                <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
+                  <Printer className="w-4 h-4 mr-2" /> Stampa Contratto
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* CONTRATTO - Formato A4 */}
+      <div ref={contractRef} className="max-w-[210mm] mx-auto bg-white print:max-w-none print:mx-0 shadow-lg print:shadow-none">
+        
+        {/* ========== PAGINA 1/4 ========== */}
+        <div data-page="1" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
+          
+          {/* HEADER */}
+          <div className="border-b-2 border-black pb-3 mb-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-2xl font-bold">{AGENCY.nome}</h1>
+                <p className="text-xs mt-1">
+                  {AGENCY.indirizzo} - {AGENCY.cap} {AGENCY.comune} ({AGENCY.provincia}) - {AGENCY.regione}
+                </p>
+                <p className="text-xs">
+                  P.IVA {AGENCY.piva} CF {AGENCY.cf}
+                </p>
+                <p className="text-xs">
+                  Tel. {AGENCY.telefono} Email: {AGENCY.email}
+                </p>
+              </div>
+              <div className="text-right">
+                <h2 className="text-xl font-bold">CONTRATTO</h2>
+                <p className="text-xs text-gray-500">Pag. 1/4</p>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGA DATI CONTRATTO */}
+          <div className="border border-black mb-4">
+            <div className="text-xs font-bold bg-gray-200 px-2 py-1 border-b border-black">
+              CONTRATTO DI NOLEGGIO
+            </div>
+            <div className="grid grid-cols-5 text-xs">
+              <div className="border-r border-black p-2">
+                <div className="text-gray-600">Data stipula:</div>
+                <div className="font-semibold">{today}</div>
+              </div>
+              <div className="border-r border-black p-2">
+                <div className="text-gray-600">Dal:</div>
+                {isEditing ? (
+                  <div className="flex gap-1">
+                    <Input type="date" value={p.data_ritiro} onChange={e => updateField('data_ritiro', e.target.value)} className="h-6 text-xs flex-1" />
+                    <Input type="time" value={p.ora_ritiro} onChange={e => updateField('ora_ritiro', e.target.value)} className="h-6 text-xs w-16" />
+                  </div>
+                ) : (
+                  <div className="font-semibold">{formatDateIT(p.data_ritiro)} {p.ora_ritiro}</div>
+                )}
+              </div>
+              <div className="border-r border-black p-2">
+                <div className="text-gray-600">al:</div>
+                {isEditing ? (
+                  <div className="flex gap-1">
+                    <Input type="date" value={p.data_riconsegna} onChange={e => updateField('data_riconsegna', e.target.value)} className="h-6 text-xs flex-1" />
+                    <Input type="time" value={p.ora_riconsegna} onChange={e => updateField('ora_riconsegna', e.target.value)} className="h-6 text-xs w-16" />
+                  </div>
+                ) : (
+                  <div className="font-semibold">{formatDateIT(p.data_riconsegna)} {p.ora_riconsegna}</div>
+                )}
+              </div>
+              <div className="border-r border-black p-2">
+                <div className="text-gray-600">Durata:</div>
+                {isEditing ? (
+                  <Input type="number" value={p.durata_giorni} onChange={e => updateField('durata_giorni', parseInt(e.target.value))} className="h-6 text-xs w-12" />
+                ) : (
+                  <div className="font-semibold">{p.durata_giorni} gg</div>
+                )}
+              </div>
+              <div className="p-2">
+                <div className="text-gray-600">Targa:</div>
+                {isEditing ? (
+                  <Input value={p.veicolo_targa} onChange={e => updateField('veicolo_targa', e.target.value.toUpperCase())} className="h-6 text-xs font-bold" />
+                ) : (
+                  <div className="font-bold text-lg">{p.veicolo_targa}</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* I. PARTI DEL CONTRATTO */}
+          <div className="border border-black mb-4">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              I. PARTI DEL CONTRATTO
+            </div>
+            <div className="grid grid-cols-2">
+              {/* Locatore */}
+              <div className="border-r border-black p-3">
+                <div className="font-bold text-xs mb-2 bg-gray-100 -mx-3 -mt-3 px-3 py-1 border-b border-black">
+                  Locatore / Noleggiatore
+                </div>
+                <div className="text-xs space-y-1">
+                  <p><span className="text-gray-600">Ragione sociale:</span> <strong>{AGENCY.nome}</strong></p>
+                  <p><span className="text-gray-600">Indirizzo:</span> {AGENCY.indirizzo} - {AGENCY.cap} {AGENCY.comune} ({AGENCY.provincia})</p>
+                  <p><span className="text-gray-600">P.IVA / CF:</span> P.IVA {AGENCY.piva} CF {AGENCY.cf}</p>
+                  <p><span className="text-gray-600">Contatti:</span> Tel. {AGENCY.telefono} Email: {AGENCY.email}</p>
+                </div>
+              </div>
+              {/* Locatario */}
+              <div className="p-3">
+                <div className="font-bold text-xs mb-2 bg-gray-100 -mx-3 -mt-3 px-3 py-1 border-b border-black">
+                  Locatario / Cliente
+                </div>
+                <div className="text-xs space-y-1">
+                  <p><span className="text-gray-600">Tipologia:</span> Persona Fisica</p>
+                  <p>
+                    <span className="text-gray-600">Denominazione:</span>{' '}
+                    {isEditing ? (
+                      <span className="inline-flex gap-1">
+                        <Input value={clienteContratto?.nome || ''} onChange={e => updateClienteField('nome', e.target.value)} className="h-5 text-xs w-24 inline" placeholder="Nome" />
+                        <Input value={clienteContratto?.cognome || ''} onChange={e => updateClienteField('cognome', e.target.value)} className="h-5 text-xs w-24 inline" placeholder="Cognome" />
+                      </span>
+                    ) : (
+                      <strong>{clienteContratto?.nome} {clienteContratto?.cognome}</strong>
+                    )}
+                  </p>
+                  <p>
+                    <span className="text-gray-600">CF / P.IVA:</span>{' '}
+                    {isEditing ? (
+                      <Input value={clienteContratto?.codice_fiscale || ''} onChange={e => updateClienteField('codice_fiscale', e.target.value.toUpperCase())} className="h-5 text-xs w-40 inline" />
+                    ) : (
+                      clienteContratto?.codice_fiscale
+                    )}
+                  </p>
+                  <p>
+                    <span className="text-gray-600">Indirizzo / Sede legale:</span>{' '}
+                    {isEditing ? (
+                      <span className="inline-flex gap-1 flex-wrap">
+                        <Input value={clienteContratto?.indirizzo || ''} onChange={e => updateClienteField('indirizzo', e.target.value)} className="h-5 text-xs w-32 inline" placeholder="Indirizzo" />
+                        <Input value={clienteContratto?.cap || ''} onChange={e => updateClienteField('cap', e.target.value)} className="h-5 text-xs w-14 inline" placeholder="CAP" />
+                        <Input value={clienteContratto?.comune || ''} onChange={e => updateClienteField('comune', e.target.value)} className="h-5 text-xs w-24 inline" placeholder="Comune" />
+                        <Input value={clienteContratto?.provincia || ''} onChange={e => updateClienteField('provincia', e.target.value)} className="h-5 text-xs w-10 inline" placeholder="Prov" />
+                      </span>
+                    ) : (
+                      <span>{clienteContratto?.indirizzo}, {clienteContratto?.cap} {clienteContratto?.comune} ({clienteContratto?.provincia})</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* II. CONDUCENTI AUTORIZZATI */}
+          <div className="border border-black mb-4">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              II. CONDUCENTI AUTORIZZATI
+            </div>
+            <div className="p-3">
+              <div className="font-bold text-xs mb-2">Conducente principale</div>
+              <div className="grid grid-cols-4 gap-2 text-xs mb-3">
+                <div>
+                  <span className="text-gray-600">Cognome:</span>{' '}
+                  {isEditing ? (
+                    <Input value={clienteContratto?.cognome || ''} onChange={e => updateClienteField('cognome', e.target.value)} className="h-5 text-xs w-20 inline" />
+                  ) : (
+                    <strong>{clienteContratto?.cognome}</strong>
+                  )}
+                </div>
+                <div>
+                  <span className="text-gray-600">Nome:</span>{' '}
+                  {isEditing ? (
+                    <Input value={clienteContratto?.nome || ''} onChange={e => updateClienteField('nome', e.target.value)} className="h-5 text-xs w-20 inline" />
+                  ) : (
+                    <strong>{clienteContratto?.nome}</strong>
+                  )}
+                </div>
+                <div>
+                  <span className="text-gray-600">Nascita:</span>{' '}
+                  {isEditing ? (
+                    <span className="inline-flex gap-1">
+                      <Input value={clienteContratto?.luogo_nascita || ''} onChange={e => updateClienteField('luogo_nascita', e.target.value)} className="h-5 text-xs w-16 inline" placeholder="Luogo" />
+                      <Input type="date" value={clienteContratto?.data_nascita || ''} onChange={e => updateClienteField('data_nascita', e.target.value)} className="h-5 text-xs w-24 inline" />
+                    </span>
+                  ) : (
+                    <span>{clienteContratto?.luogo_nascita}, {clienteContratto?.data_nascita}</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-gray-600">Cod. fiscale:</span>{' '}
+                  {isEditing ? (
+                    <Input value={clienteContratto?.codice_fiscale || ''} onChange={e => updateClienteField('codice_fiscale', e.target.value.toUpperCase())} className="h-5 text-xs w-32 inline" />
+                  ) : (
+                    clienteContratto?.codice_fiscale
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                <div>
+                  <span className="text-gray-600">Residenza:</span>{' '}
+                  {isEditing ? (
+                    <span className="inline-flex gap-1">
+                      <Input value={clienteContratto?.indirizzo || ''} onChange={e => updateClienteField('indirizzo', e.target.value)} className="h-5 text-xs w-28 inline" />
+                      <Input value={clienteContratto?.comune || ''} onChange={e => updateClienteField('comune', e.target.value)} className="h-5 text-xs w-20 inline" />
+                      (<Input value={clienteContratto?.provincia || ''} onChange={e => updateClienteField('provincia', e.target.value)} className="h-5 text-xs w-8 inline" />)
+                    </span>
+                  ) : (
+                    <span>{clienteContratto?.indirizzo}, {clienteContratto?.comune} ({clienteContratto?.provincia})</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-gray-600">Patente:</span>{' '}
+                  {isEditing ? (
+                    <span className="inline-flex gap-1">
+                      N. <Input value={patenteContratto.numero || ''} onChange={e => updateClientePatenteField('numero', e.target.value)} className="h-5 text-xs w-24 inline" />
+                      Cat. <Input value={patenteContratto.categoria || ''} onChange={e => updateClientePatenteField('categoria', e.target.value)} className="h-5 text-xs w-8 inline" />
+                      Scad. <Input type="date" value={patenteContratto.data_scadenza || ''} onChange={e => updateClientePatenteField('data_scadenza', e.target.value)} className="h-5 text-xs w-28 inline" />
+                    </span>
+                  ) : (
+                    <span>N. {patenteContratto.numero} Cat. {patenteContratto.categoria} Scad. {patenteContratto.data_scadenza}</span>
+                  )}
+                </div>
+              </div>
+              
+              {/* Tabella conducenti aggiuntivi */}
+              <div className="font-bold text-xs mb-1 mt-3">Ulteriori conducenti autorizzati</div>
+              <table className="w-full text-xs border border-black">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-black p-1 text-left">Conducente</th>
+                    <th className="border border-black p-1 text-left">Documento identità</th>
+                    <th className="border border-black p-1 text-left">Nascita (luogo, data)</th>
+                    <th className="border border-black p-1 text-left">Patente</th>
+                    <th className="border border-black p-1 text-left">Contatti</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {p.conducenti_aggiuntivi?.map((c, i) => (
+                    <tr key={i}>
+                      <td className="border border-black p-1">{c.nome} {c.cognome}</td>
+                      <td className="border border-black p-1">{c.codice_fiscale}</td>
+                      <td className="border border-black p-1">{c.luogo_nascita}, {c.data_nascita}</td>
+                      <td className="border border-black p-1">{c.patente_numero} ({c.patente_categoria})</td>
+                      <td className="border border-black p-1">{c.cellulare}</td>
+                    </tr>
+                  ))}
+                  {/* Righe vuote per compilazione */}
+                  {[...Array(3 - (p.conducenti_aggiuntivi?.length || 0))].map((_, i) => (
+                    <tr key={`empty-${i}`}>
+                      <td className="border border-black p-3"></td>
+                      <td className="border border-black p-3"></td>
+                      <td className="border border-black p-3"></td>
+                      <td className="border border-black p-3"></td>
+                      <td className="border border-black p-3"></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* III. VEICOLO OGGETTO DEL NOLEGGIO */}
+          <div className="border border-black mb-4">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              III. VEICOLO OGGETTO DEL NOLEGGIO
+            </div>
+            <div className="grid grid-cols-3 gap-0">
+              {/* Dati veicolo */}
+              <div className="p-3 border-r border-black">
+                <div className="text-xs space-y-2">
+                  {/* DROPDOWN SELEZIONE VEICOLO - Solo in edit mode */}
+                  {isEditing && (
+                    <div className="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
+                      <div className="flex items-center gap-1 text-blue-700 font-medium mb-1">
+                        <Car className="w-3 h-3" />
+                        <span>Cambia Veicolo</span>
+                      </div>
+                      <Select onValueChange={handleVeicoloChange} value={p.veicolo_id || ''}>
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Seleziona altro veicolo..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {veicoli.map(v => (
+                            <SelectItem key={v.id} value={v.id} className="text-xs">
+                              {v.marca} {v.modello} ({v.targa}) - €{v.tariffa_giornaliera || v.base_price}/gg
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-blue-600 mt-1">I costi verranno aggiornati automaticamente</p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2">
+                    <span className="text-gray-600">Marca / Modello:</span>
+                    {isEditing ? (
+                      <span className="inline-flex gap-1">
+                        <Input value={p.veicolo_marca || ''} onChange={e => updateField('veicolo_marca', e.target.value)} className="h-5 text-xs w-16" />
+                        <Input value={p.veicolo_modello || ''} onChange={e => updateField('veicolo_modello', e.target.value)} className="h-5 text-xs w-16" />
+                      </span>
+                    ) : (
+                      <strong>{p.veicolo_marca} {p.veicolo_modello}</strong>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-gray-600">Targa:</span>
+                    {isEditing ? (
+                      <Input value={p.veicolo_targa || ''} onChange={e => updateField('veicolo_targa', e.target.value.toUpperCase())} className="h-5 text-xs w-24" />
+                    ) : (
+                      <strong>{p.veicolo_targa}</strong>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-gray-600">Colore:</span>
+                    {isEditing ? <Input value={p.veicolo_colore || ''} onChange={e => updateField('veicolo_colore', e.target.value)} className="h-5 text-xs" /> : <span>{p.veicolo_colore || '_______'}</span>}
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-gray-600">Cambio:</span>
+                    {isEditing ? <Input value={p.veicolo_cambio || ''} onChange={e => updateField('veicolo_cambio', e.target.value)} className="h-5 text-xs" /> : <span>{p.veicolo_cambio || '_______'}</span>}
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-gray-600">Alim.:</span>
+                    {isEditing ? <Input value={p.veicolo_alimentazione || ''} onChange={e => updateField('veicolo_alimentazione', e.target.value)} className="h-5 text-xs" /> : <span>{p.veicolo_alimentazione || '_______'}</span>}
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-gray-600">Tacche carburante:</span>
+                    {isEditing ? <Input value={p.tacche_carburante_uscita || ''} onChange={e => updateField('tacche_carburante_uscita', e.target.value)} className="h-5 text-xs w-12" /> : <span>{p.tacche_carburante_uscita || '____'} / 8</span>}
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-gray-600">Km uscita:</span>
+                    {isEditing ? <Input value={p.km_uscita || ''} onChange={e => updateField('km_uscita', e.target.value)} className="h-5 text-xs w-20" /> : <span>{p.km_uscita || '_______'}</span>}
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-gray-600">Km inclusi:</span>
+                    {isEditing ? <Input type="number" value={p.km_inclusi_totali || ''} onChange={e => updateField('km_inclusi_totali', parseInt(e.target.value))} className="h-5 text-xs w-20" /> : <span>{p.km_inclusi_totali}</span>}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Schema veicolo per danni - COLONNE 2-3 */}
+              <div className="col-span-2 p-2">
+                <VeicoloSchemaCompleto />
+              </div>
+            </div>
+          </div>
+
+          {/* IV. DURATA & CHILOMETRAGGIO */}
+          <div className="border border-black">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              IV. DURATA &amp; CHILOMETRAGGIO
+            </div>
+            <div className="grid grid-cols-3 text-xs">
+              {/* Periodo di noleggio - NON MODIFICABILE */}
+              <div className="border-r border-black p-3">
+                <div className="font-bold mb-2">Periodo di noleggio</div>
+                <p>
+                  <span className="text-gray-600">Durata:</span>{' '}
+                  <strong>{p.durata_giorni} giorni</strong>
+                </p>
+                <p><span className="text-gray-600">Dal:</span> {formatDateIT(p.data_ritiro)} ore {p.ora_ritiro}</p>
+                <p><span className="text-gray-600">Al:</span> {formatDateIT(p.data_riconsegna)} ore {p.ora_riconsegna}</p>
+              </div>
+              {/* Chilometraggio - MODIFICABILE */}
+              <div className="border-r border-black p-3">
+                <div className="font-bold mb-2">Chilometraggio</div>
+                <p>
+                  <span className="text-gray-600">Km inclusi:</span>{' '}
+                  {isEditing ? (
+                    <Select 
+                      value={p.km_tipo || 'standard'} 
+                      onValueChange={(v) => {
+                        updateField('km_tipo', v);
+                        if (v === 'illimitati') {
+                          updateField('km_inclusi_totali', 'ILLIMITATI');
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-6 text-xs w-32 inline-flex">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="illimitati">ILLIMITATI</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+                  {' '}
+                  {p.km_tipo === 'illimitati' || p.km_inclusi_totali === 'ILLIMITATI' ? (
+                    <strong className="text-green-700">KM ILLIMITATI</strong>
+                  ) : isEditing ? (
+                    <Input type="number" value={p.km_inclusi_totali || ''} onChange={e => updateField('km_inclusi_totali', parseInt(e.target.value))} className="h-5 text-xs w-20 inline" />
+                  ) : (
+                    <strong>{p.km_inclusi_totali} km</strong>
+                  )}
+                </p>
+                <p>
+                  <span className="text-gray-600">Prezzo km extra:</span>{' '}
+                  {p.km_tipo === 'illimitati' || p.km_inclusi_totali === 'ILLIMITATI' ? (
+                    <span className="text-green-700">N/A</span>
+                  ) : isEditing ? (
+                    <>€<Input type="number" step="0.01" value={p.prezzo_km_extra || ''} onChange={e => updateField('prezzo_km_extra', parseFloat(e.target.value))} className="h-5 text-xs w-16 inline" />/km</>
+                  ) : (
+                    <>€{p.prezzo_km_extra}/km</>
+                  )}
+                </p>
+              </div>
+              {/* Deposito & acconti - MODIFICABILE */}
+              <div className="p-3 bg-gray-50">
+                <div className="font-bold mb-2">Deposito &amp; acconti</div>
+                <p>
+                  <span className="text-gray-600">Acconto:</span>{' '}
+                  €{isEditing ? <Input type="number" step="0.01" value={p.acconto || ''} onChange={e => updateField('acconto', parseFloat(e.target.value))} className="h-5 text-xs w-20 inline" /> : (p.acconto || '_______')}
+                </p>
+                <p>
+                  <span className="text-gray-600">Deposito:</span>{' '}
+                  €{isEditing ? <Input type="number" step="0.01" value={p.deposito_cauzionale || ''} onChange={e => updateField('deposito_cauzionale', parseFloat(e.target.value))} className="h-5 text-xs w-20 inline" /> : p.deposito_cauzionale}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ========== PAGINA 2/4 ========== */}
+        <div data-page="2" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
+          {/* Header pagina 2 */}
+          <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
+            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
+            <span className="text-xs text-gray-500">Pag. 2/4</span>
+          </div>
+
+          {/* V. CORRISPETTIVO & SERVIZI */}
+          <div className="border border-black mb-4">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              V. CORRISPETTIVO &amp; SERVIZI
+            </div>
+            
+            {/* Servizi supplementari */}
+            <div className="p-3 border-b border-black">
+              <div className="font-bold text-xs mb-2">SERVIZI SUPPLEMENTARI</div>
+              <table className="w-full text-xs border border-black">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-black p-1 text-left">SERVIZIO</th>
+                    <th className="border border-black p-1 text-center w-16">Q.TÀ</th>
+                    <th className="border border-black p-1 text-center w-16">UNITÀ</th>
+                    <th className="border border-black p-1 text-right w-20">TOTALE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {p.servizi_supplementari?.length > 0 ? (
+                    p.servizi_supplementari.map((s, i) => (
+                      <tr key={i}>
+                        <td className="border border-black p-1">{s.nome}</td>
+                        <td className="border border-black p-1 text-center">{s.quantita}</td>
+                        <td className="border border-black p-1 text-center">{s.unita}</td>
+                        <td className="border border-black p-1 text-right">€{s.totale?.toFixed(2)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="border border-black p-2 text-center text-gray-400 italic">
+                        Nessun servizio supplementare associato a questo noleggio.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Franchigie e Riepilogo */}
+            <div className="grid grid-cols-2">
+              <div className="p-3 border-r border-black">
+                <div className="font-bold text-xs mb-2">COPERTURE ASSICURATIVE</div>
+                <table className="w-full text-xs border border-black">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-black p-1 text-left">COPERTURA/FRANCHIGIA</th>
+                      <th className="border border-black p-1 text-right w-24">IMPORTO</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-black p-1">Attivazione CASCO con franchigia danni</td>
+                      <td className="border border-black p-1 text-right">
+                        {isEditing ? (
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            value={p.franchigia_kasko ?? 500} 
+                            onChange={e => {
+                              const val = parseFloat(e.target.value) || 0;
+                              updateField('franchigia_kasko', val);
+                              // Ricalcola totale
+                              const penalita = p.franchigia_sinistro ?? 250;
+                              updateField('totale_franchigie', val + penalita);
+                            }} 
+                            className="h-5 text-xs w-20 text-right" 
+                          />
+                        ) : (
+                          <span className="font-semibold">€ {(p.franchigia_kasko ?? 500).toFixed(2)}</span>
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-black p-1">Penalità per sinistro con responsabilità</td>
+                      <td className="border border-black p-1 text-right">
+                        {isEditing ? (
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            value={p.franchigia_sinistro ?? 250} 
+                            onChange={e => {
+                              const val = parseFloat(e.target.value) || 0;
+                              updateField('franchigia_sinistro', val);
+                              // Ricalcola totale
+                              const kasko = p.franchigia_kasko ?? 500;
+                              updateField('totale_franchigie', kasko + val);
+                            }} 
+                            className="h-5 text-xs w-20 text-right" 
+                          />
+                        ) : (
+                          <span className="font-semibold">€ {(p.franchigia_sinistro ?? 250).toFixed(2)}</span>
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-black p-1">Scoperto 10% incendio e furto</td>
+                      <td className="border border-black p-1 text-right">
+                        {isEditing ? (
+                          <Input 
+                            type="text" 
+                            value={p.scoperto_furto ?? '10%'} 
+                            onChange={e => updateField('scoperto_furto', e.target.value)} 
+                            className="h-5 text-xs w-20 text-right" 
+                          />
+                        ) : (
+                          <span className="font-semibold">{p.scoperto_furto ?? '10%'}</span>
+                        )}
+                      </td>
+                    </tr>
+                    <tr className="bg-yellow-50">
+                      <td className="border border-black p-1 font-semibold">Totale franchigie contratto</td>
+                      <td className="border border-black p-1 text-right font-bold">
+                        € {((p.franchigia_kasko ?? 500) + (p.franchigia_sinistro ?? 250)).toFixed(2)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p className="text-[9px] mt-1 text-gray-500 italic">
+                  * In caso di sinistro, il conduttore è tenuto al pagamento delle franchigie sopra indicate.
+                </p>
+              </div>
+              <div className="p-3">
+                <div className="font-bold text-xs mb-2">RIEPILOGO ECONOMICO</div>
+                <table className="w-full text-xs">
+                  <tbody>
+                    <tr>
+                      <td className="py-0.5">Tariffa base noleggio:</td>
+                      <td className="text-right">
+                        {isEditing ? (
+                          <Input type="number" step="0.01" value={p.tariffa_base || ''} onChange={e => updateField('tariffa_base', parseFloat(e.target.value))} className="h-5 text-xs w-20 text-right" />
+                        ) : (
+                          <>{p.tariffa_base?.toFixed(2)} €</>
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-0.5">Servizi supplementari:</td>
+                      <td className="text-right">
+                        {isEditing ? (
+                          <Input type="number" step="0.01" value={p.totale_servizi || ''} onChange={e => updateField('totale_servizi', parseFloat(e.target.value))} className="h-5 text-xs w-20 text-right" />
+                        ) : (
+                          <>{(p.totale_servizi || 0).toFixed(2)} €</>
+                        )}
+                      </td>
+                    </tr>
+                    <tr><td className="py-0.5">Check-in:</td><td className="text-right">0,00 €</td></tr>
+                    <tr><td className="py-0.5">Check-out:</td><td className="text-right">0,00 €</td></tr>
+                    <tr>
+                      <td className="py-0.5">Franchigie assicurative:</td>
+                      <td className="text-right">
+                        {((p.franchigia_kasko ?? 500) + (p.franchigia_sinistro ?? 250)).toFixed(2)} €
+                      </td>
+                    </tr>
+                    <tr><td className="py-0.5">Chilometri eccedenza:</td><td className="text-right">0,00 €</td></tr>
+                    <tr className="border-t border-black font-bold"><td className="py-1">Totale (IVA inclusa):</td><td className="text-right">{((p.tariffa_base || 0) + (p.totale_servizi || 0) + (p.totale_franchigie || 0)).toFixed(2)} €</td></tr>
+                    <tr>
+                      <td className="py-0.5">Acconto già versato:</td>
+                      <td className="text-right">
+                        {isEditing ? (
+                          <Input type="number" step="0.01" value={p.acconto || ''} onChange={e => updateField('acconto', parseFloat(e.target.value))} className="h-5 text-xs w-20 text-right" />
+                        ) : (
+                          <>{(p.acconto || 0).toFixed(2)} €</>
+                        )}
+                      </td>
+                    </tr>
+                    <tr className="bg-yellow-100 font-bold"><td className="py-1">Saldo alla consegna:</td><td className="text-right">{((p.tariffa_base || 0) + (p.totale_servizi || 0) + (p.totale_franchigie || 0) - (p.acconto || 0)).toFixed(2)} €</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* V-BIS. RIENTRO & ADDEBITI */}
+          <div className="border border-black mb-4">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              V-BIS. RIENTRO &amp; ADDEBITI
+            </div>
+            <div className="grid grid-cols-2 text-xs">
+              <div className="p-3 border-r border-black">
+                <div className="font-bold mb-2">DATI RIENTRO</div>
+                <div className="space-y-1">
+                  <p>Data/ora rientro effettivo: _____________________</p>
+                  <p>Km entrata: _________ Km percorsi: _________</p>
+                  <p>Km inclusi totali: {p.km_inclusi_totali}</p>
+                  <p>Km eccedenza: _________ Importo km eccedenza: €_________</p>
+                  <p>Tacche carburante entrata: _____ / 8</p>
+                </div>
+              </div>
+              <div className="p-3">
+                <div className="font-bold mb-2">ADDEBITI AL RIENTRO</div>
+                <table className="w-full text-xs">
+                  <tbody>
+                    <tr><td>Danni veicolo:</td><td className="text-right">€ ___________</td></tr>
+                    <tr><td>Costo gestione danni:</td><td className="text-right">€ ___________</td></tr>
+                    <tr><td>Carburante mancante:</td><td className="text-right">€ ___________</td></tr>
+                    <tr><td>Pulizia straordinaria:</td><td className="text-right">€ ___________</td></tr>
+                    <tr><td>Altri addebiti:</td><td className="text-right">€ ___________</td></tr>
+                    <tr className="border-t border-black font-bold bg-yellow-100"><td className="py-1">Totale addebiti rientro:</td><td className="text-right">0,00 €</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* VI. LUOGO CHECK IN & CHECK OUT */}
+          <div className="border border-black mb-4">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              VI. LUOGO CHECK IN &amp; CHECK OUT
+            </div>
+            <div className="grid grid-cols-2 text-xs">
+              <div className="p-3 border-r border-black">
+                <div className="font-bold text-green-700 mb-3">CHECK-IN (RITIRO VEICOLO)</div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 w-12">Data:</span>
+                    {isEditing ? (
+                      <Input type="date" value={p.contratto_check_in?.data || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), data: e.target.value})} className="h-6 text-xs flex-1" />
+                    ) : (
+                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{formatDateIT(p.contratto_check_in?.data) || ''}</span>
+                    )}
+                    <span className="text-gray-600 w-8">Ora:</span>
+                    {isEditing ? (
+                      <Input type="time" value={p.contratto_check_in?.ora || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), ora: e.target.value})} className="h-6 text-xs w-20" />
+                    ) : (
+                      <span className="border-b border-gray-400 w-16 min-h-[20px]">{p.contratto_check_in?.ora || ''}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 w-16">Luogo:</span>
+                    {isEditing ? (
+                      <Input value={p.contratto_check_in?.luogo || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), luogo: e.target.value})} className="h-6 text-xs flex-1" placeholder="Es: Sede Principale" />
+                    ) : (
+                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_in?.luogo || ''}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 w-16">Indirizzo:</span>
+                    {isEditing ? (
+                      <Input value={p.contratto_check_in?.indirizzo || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), indirizzo: e.target.value})} className="h-6 text-xs flex-1" />
+                    ) : (
+                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_in?.indirizzo || ''}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 w-16">Km uscita:</span>
+                    {isEditing ? (
+                      <Input type="number" value={p.contratto_check_in?.km_uscita || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), km_uscita: e.target.value})} className="h-6 text-xs w-24" />
+                    ) : (
+                      <span className="border-b border-gray-400 w-20 min-h-[20px]">{p.contratto_check_in?.km_uscita || ''}</span>
+                    )}
+                    <span className="text-gray-600 w-20">Carburante:</span>
+                    {isEditing ? (
+                      <Input type="number" min="0" max="8" value={p.contratto_check_in?.carburante || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), carburante: e.target.value})} className="h-6 text-xs w-12" />
+                    ) : (
+                      <span className="border-b border-gray-400 w-8 min-h-[20px]">{p.contratto_check_in?.carburante || ''}</span>
+                    )}
+                    <span>/ 8</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 w-16">Operatore:</span>
+                    {isEditing ? (
+                      <Input value={p.contratto_check_in?.operatore || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), operatore: e.target.value})} className="h-6 text-xs flex-1" />
+                    ) : (
+                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_in?.operatore || ''}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="p-3">
+                <div className="font-bold text-red-700 mb-3">CHECK-OUT (RICONSEGNA VEICOLO)</div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 w-12">Data:</span>
+                    {isEditing ? (
+                      <Input type="date" value={p.contratto_check_out?.data || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), data: e.target.value})} className="h-6 text-xs flex-1" />
+                    ) : (
+                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{formatDateIT(p.contratto_check_out?.data) || ''}</span>
+                    )}
+                    <span className="text-gray-600 w-8">Ora:</span>
+                    {isEditing ? (
+                      <Input type="time" value={p.contratto_check_out?.ora || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), ora: e.target.value})} className="h-6 text-xs w-20" />
+                    ) : (
+                      <span className="border-b border-gray-400 w-16 min-h-[20px]">{p.contratto_check_out?.ora || ''}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 w-16">Luogo:</span>
+                    {isEditing ? (
+                      <Input value={p.contratto_check_out?.luogo || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), luogo: e.target.value})} className="h-6 text-xs flex-1" placeholder="Es: Sede Principale" />
+                    ) : (
+                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_out?.luogo || ''}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 w-16">Indirizzo:</span>
+                    {isEditing ? (
+                      <Input value={p.contratto_check_out?.indirizzo || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), indirizzo: e.target.value})} className="h-6 text-xs flex-1" />
+                    ) : (
+                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_out?.indirizzo || ''}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 w-16">Km entrata:</span>
+                    {isEditing ? (
+                      <Input type="number" value={p.contratto_check_out?.km_entrata || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), km_entrata: e.target.value})} className="h-6 text-xs w-24" />
+                    ) : (
+                      <span className="border-b border-gray-400 w-20 min-h-[20px]">{p.contratto_check_out?.km_entrata || ''}</span>
+                    )}
+                    <span className="text-gray-600 w-20">Carburante:</span>
+                    {isEditing ? (
+                      <Input type="number" min="0" max="8" value={p.contratto_check_out?.carburante || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), carburante: e.target.value})} className="h-6 text-xs w-12" />
+                    ) : (
+                      <span className="border-b border-gray-400 w-8 min-h-[20px]">{p.contratto_check_out?.carburante || ''}</span>
+                    )}
+                    <span>/ 8</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 w-16">Operatore:</span>
+                    {isEditing ? (
+                      <Input value={p.contratto_check_out?.operatore || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), operatore: e.target.value})} className="h-6 text-xs flex-1" />
+                    ) : (
+                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_out?.operatore || ''}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* VII. DANNI PREESISTENTI */}
+          <div className="border border-black mb-4">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              VII. DANNI PREESISTENTI
+            </div>
+            <div className="p-3">
+              <table className="w-full text-xs border border-black">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-black p-1 text-left w-20">Punto</th>
+                    <th className="border border-black p-1 text-left">Descrizione del danno</th>
+                    {isEditing && <th className="border border-black p-1 w-12">Azioni</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(p.danni_preesistenti || []).map((d, i) => (
+                    <tr key={i}>
+                      <td className="border border-black p-1">
+                        {isEditing ? (
+                          <Input 
+                            value={d.punto || ''} 
+                            onChange={e => {
+                              const newDanni = [...(p.danni_preesistenti || [])];
+                              newDanni[i] = { ...newDanni[i], punto: e.target.value };
+                              updateField('danni_preesistenti', newDanni);
+                            }} 
+                            className="h-6 text-xs w-full" 
+                            placeholder="Es: A1"
+                          />
+                        ) : (
+                          d.punto
+                        )}
+                      </td>
+                      <td className="border border-black p-1">
+                        {isEditing ? (
+                          <Input 
+                            value={d.descrizione || ''} 
+                            onChange={e => {
+                              const newDanni = [...(p.danni_preesistenti || [])];
+                              newDanni[i] = { ...newDanni[i], descrizione: e.target.value };
+                              updateField('danni_preesistenti', newDanni);
+                            }} 
+                            className="h-6 text-xs w-full" 
+                            placeholder="Descrizione del danno"
+                          />
+                        ) : (
+                          d.descrizione
+                        )}
+                      </td>
+                      {isEditing && (
+                        <td className="border border-black p-1 text-center">
+                          <button 
+                            onClick={() => {
+                              const newDanni = (p.danni_preesistenti || []).filter((_, idx) => idx !== i);
+                              updateField('danni_preesistenti', newDanni);
+                            }}
+                            className="text-red-500 hover:text-red-700 text-xs"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                  {/* Righe vuote editabili */}
+                  {isEditing ? (
+                    <tr>
+                      <td colSpan="3" className="border border-black p-2 text-center">
+                        <button 
+                          onClick={() => {
+                            const newDanni = [...(p.danni_preesistenti || []), { punto: '', descrizione: '' }];
+                            updateField('danni_preesistenti', newDanni);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                        >
+                          + Aggiungi danno
+                        </button>
+                      </td>
+                    </tr>
+                  ) : (
+                    (p.danni_preesistenti || []).length === 0 && (
+                      <tr>
+                        <td colSpan="2" className="border border-black p-2 text-center text-gray-400 italic">
+                          Nessun danno dichiarato al momento della consegna.
+                        </td>
+                      </tr>
+                    )
+                  )}
+                  {/* Righe vuote per stampa se non in editing */}
+                  {!isEditing && [...Array(Math.max(0, 4 - (p.danni_preesistenti || []).length))].map((_, i) => (
+                    <tr key={`empty-${i}`}>
+                      <td className="border border-black p-3"></td>
+                      <td className="border border-black p-3"></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-xs text-gray-500 italic mt-2">
+                Eventuali danni non riportati in tabella si presumono inesistenti al momento della consegna del veicolo al locatario.
+              </p>
+            </div>
+          </div>
+
+          {/* VIII. GARANZIE & PAGAMENTO */}
+          <div className="border border-black">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              VIII. GARANZIE &amp; PAGAMENTO
+            </div>
+            <div className="grid grid-cols-3 text-xs">
+              {/* Garante */}
+              <div className="p-3 border-r border-black">
+                <div className="font-bold mb-2">GARANTE</div>
+                <div className="space-y-2">
+                  {isEditing ? (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600 w-16">Garante:</span>
+                        <Input value={p.garante_nome || ''} onChange={e => updateField('garante_nome', e.target.value)} className="h-5 text-xs flex-1" placeholder="Nome e cognome" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600 w-16">Recapiti:</span>
+                        <Input value={p.garante_recapiti || ''} onChange={e => updateField('garante_recapiti', e.target.value)} className="h-5 text-xs flex-1" placeholder="Telefono" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600 w-16">Documento:</span>
+                        <Input value={p.garante_documento || ''} onChange={e => updateField('garante_documento', e.target.value)} className="h-5 text-xs flex-1" placeholder="Tipo e numero" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p>Garante: {p.garante_nome || '_________________________'}</p>
+                      <p>Recapiti: {p.garante_recapiti || '_________________________'}</p>
+                      <p>Documento: {p.garante_documento || '_______________________'}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+              {/* Carta di credito - CAMPI EDITABILI */}
+              <div className="p-3 border-r border-black bg-yellow-50">
+                <div className="font-bold mb-2">CARTA DI CREDITO</div>
+                <div className="space-y-2">
+                  {isEditing ? (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600 w-20">Circuito:</span>
+                        <Input value={p.carta_circuito || ''} onChange={e => updateField('carta_circuito', e.target.value)} className="h-5 text-xs flex-1" placeholder="Visa, Mastercard..." />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600 w-20">Intestatario:</span>
+                        <Input value={p.carta_intestatario || ''} onChange={e => updateField('carta_intestatario', e.target.value)} className="h-5 text-xs flex-1" placeholder="Nome sulla carta" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600 w-20">N. Carta:</span>
+                        <Input value={p.carta_numero || ''} onChange={e => updateField('carta_numero', e.target.value.replace(/\D/g, '').slice(0,16))} maxLength={19} className="h-5 text-xs flex-1 font-mono" placeholder="1234 5678 9012 3456" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600 w-20">Scadenza:</span>
+                        <Input value={p.carta_scadenza_mese || ''} onChange={e => updateField('carta_scadenza_mese', e.target.value)} maxLength={2} className="h-5 text-xs w-10" placeholder="MM" />
+                        <span>/</span>
+                        <Input value={p.carta_scadenza_anno || ''} onChange={e => updateField('carta_scadenza_anno', e.target.value)} maxLength={2} className="h-5 text-xs w-10" placeholder="AA" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p>Circuito: {p.carta_circuito || '_________________________'}</p>
+                      <p>Intestatario: {p.carta_intestatario || '_____________________'}</p>
+                      <p>N. Carta: <span className="font-mono">{p.carta_numero || '________________'}</span></p>
+                      <p>Scadenza: {p.carta_scadenza_mese || '______'} / {p.carta_scadenza_anno || '______'}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+              {/* Pagamento */}
+              <div className="p-3">
+                <div className="font-bold mb-2">PAGAMENTO</div>
+                <div className="space-y-2">
+                  {isEditing ? (
+                    <>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={p.pagamento_contanti || false} onChange={e => updateField('pagamento_contanti', e.target.checked)} className="w-4 h-4" />
+                        <span>Contanti</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={p.pagamento_carta || false} onChange={e => updateField('pagamento_carta', e.target.checked)} className="w-4 h-4" />
+                        <span>Carta di Credito</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={p.pagamento_bonifico || false} onChange={e => updateField('pagamento_bonifico', e.target.checked)} className="w-4 h-4" />
+                        <span>Bonifico</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={p.pagamento_altro || false} onChange={e => updateField('pagamento_altro', e.target.checked)} className="w-4 h-4" />
+                        <span>Altro:</span>
+                        <Input value={p.pagamento_altro_desc || ''} onChange={e => updateField('pagamento_altro_desc', e.target.value)} className="h-5 text-xs w-20" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p><span className={`inline-block w-4 h-4 border border-black mr-2 ${p.pagamento_contanti ? 'bg-black' : ''}`}></span> Contanti</p>
+                      <p><span className={`inline-block w-4 h-4 border border-black mr-2 ${p.pagamento_carta ? 'bg-black' : ''}`}></span> Carta di Credito</p>
+                      <p><span className={`inline-block w-4 h-4 border border-black mr-2 ${p.pagamento_bonifico ? 'bg-black' : ''}`}></span> Bonifico</p>
+                      <p><span className={`inline-block w-4 h-4 border border-black mr-2 ${p.pagamento_altro ? 'bg-black' : ''}`}></span> Altro: {p.pagamento_altro_desc || '____________'}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ========== PAGINA 3/4 - CONDIZIONI GENERALI ========== */}
+        <div data-page="3" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
+          <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
+            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
+            <span className="text-xs text-gray-500">Pag. 3/4</span>
+          </div>
+
+          <div className="border border-black">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              IX. CONDIZIONI GENERALI DI NOLEGGIO
+            </div>
+            <div className="p-3 text-xs leading-relaxed" style={{ fontSize: '8pt', lineHeight: '1.4' }}>
+              <p className="mb-2"><strong>1.</strong> La società RE.LE.CO. Group SRL in seguito definita Locatrice, concede in noleggio alla persona che sottoscrive il presente contratto, in nome proprio ovvero in qualità di legale rappresentate della società indicata, in seguito definita Conduttore, il veicolo descritto nel contratto stesso.</p>
+              
+              <p className="mb-2"><strong>2.</strong> Il Conduttore dichiara che il veicolo, al momento della presa in consegna, si trova in buone condizioni di meccanica e di carrozzeria. Pertanto si obbliga a riconsegnarlo nello stesso stato in cui l'ha ricevuto, salvo il normale deterioramento dovuto all'uso, segnalando per iscritto alla Locatrice gli eventuali danni o anomalie.</p>
+              
+              <p className="mb-2"><strong>3.</strong> Il conduttore, all'atto della stipula del presente contratto di noleggio, dichiara di essere abilitato alla guida del veicolo noleggiato e si obbliga a presentare la relativa patente di guida in corso di validità. L'età minima per l'ammissione alla sottoscrizione del presente contratto è fissata in anni 21.</p>
+              
+              <p className="mb-2"><strong>4.</strong> La durata del noleggio è stabilita dal momento del ritiro del veicolo e fino alla data di riconsegna prevista indicata nel contratto. Qualora il Conduttore avesse esigenza di prolungare il periodo di noleggio stabilito in sede contrattuale, dovrà darne comunicazione alla Locatrice con almeno 24 ore di anticipo sulla scadenza del contratto stesso. In tal caso la Locatrice ha facoltà di non accogliere tale richiesta. In caso di inadempimento da parte del Conduttore delle obbligazioni sottoscritte con il presente contratto, la Locatrice ha la facoltà di risolvere di diritto il contratto stesso, inviando apposita comunicazione ai sensi dell'articolo 1456 del codice civile. Qualora al termine del periodo di noleggio concordato il Conduttore non restituisca il veicolo, la Locatrice si riserva il diritto di richiederne l'immediata riconsegna a mezzo telegramma, raccomandata A/R, PEC o Telefax. Trascorsi tre giorni dal ricevimento da parte del Conduttore della comunicazione citata senza che la Locatrice riceva valide spiegazioni in merito alla mancata riconsegna del veicolo, la stessa potrà presentare all'autorità competente denuncia/querela per l'appropriazione indebita del veicolo. In ogni caso il Conduttore sarà tenuto a versare, per ogni giorno in più, dal termine previsto per la riconsegna fino alla restituzione effettiva, il costo della tariffa a prezzo raddoppiato a titolo di penale per la ritardata restituzione del veicolo, oltre al risarcimento di eventuali danni maggiori. In caso di riconsegna dell'autovettura con ritardo rispetto all'orario stabilito in sede contrattuale, il Conduttore sarà obbligato al pagamento di una penale pari a 30€ per le prime tre ore di ritardo. Superate le tre ore di ritardo, viene applicata una penale pari all'importo della tariffa giornaliera prevista dal contratto sottoscritto. Il conduttore all'inizio del noleggio è obbligato a versare un deposito cauzionale che garantisca l'adempimento dei propri obblighi contrattuali pari a euro 1000 (mille).</p>
+              
+              <p className="mb-2"><strong>5.</strong> Il corrispettivo totale del noleggio sarà determinato alla stipula del contratto allegato, in base alle tariffe in vigore e dovrà essere immediatamente pagato alla Locatrice che si impegna a rilasciare regolare documento fiscale. Il pagamento dovrà essere effettuato con carta di credito. Nel caso di mancato pagamento del canone di noleggio, la Locatrice è autorizzata, previa comunicazione scritta (e-mail, fax o sms), all'incasso delle somme dovute mediante l'utilizzo diretto della carta di credito concessa a titolo di garanzia. Qualora il Conduttore richieda la consegna e/o la riconsegna del veicolo in luogo diverso della Locatrice, tutte le spese di trasferimento saranno a completo carico del Conduttore stesso.</p>
+              
+              <p className="mb-2"><strong>6.</strong> Le spese per il carburante sono a totale carico del Conduttore.</p>
+              
+              <p className="mb-2"><strong>7.</strong> Il conduttore si impegna ad utilizzare il veicolo noleggiato con diligenza e nel pieno rispetto dell'uso per cui è stato omologato. Il conduttore si impegna inoltre a non far guidare il veicolo noleggiato a terze persone, siano esse anche familiari oppure amici. Contravvenendo quanto sopra il Conduttore sarà ritenuto responsabile dei danni eventualmente arrecati sia all'autoveicolo noleggiato che a terzi.</p>
+              
+              <p className="mb-2"><strong>8.</strong> Le riparazioni e manutenzione sia ordinarie che straordinarie del veicolo noleggiato vengono effettuate dalla Locatrice. In caso di necessità urgenti vi può provvedere il Conduttore dietro autorizzazione scritta della Locatrice. Il Conduttore si obbliga a risarcire eventuali danni al veicolo noleggiato causati dal mancato rispetto delle norme previste dal libretto "uso e manutenzione" in dotazione al veicolo stesso. Il Conduttore si impegna inoltre a non effettuare modifiche di qualsiasi genere al veicolo noleggiato. In particolare, il Cliente si assume l'obbligo di risarcire: i danni derivanti dal rifornimento effettuato con carburante diverso da quello previsto per il motoveicolo o autovettura noleggiato; i danni derivanti da interventi di riparazione eseguiti o fatti eseguire direttamente dal Cliente senza il consenso scritto della locatrice; Nel caso in cui vengano riscontrati sul motoveicolo o autovettura danni di qualunque sorta, la ditta viene fin d'ora autorizzata a prelevare senza preavviso la cifra corrispondente all'importo dovuto sulla carta di credito del Cliente.</p>
+              
+              <p className="mb-2"><strong>9.</strong> Il conduttore dichiara di aver constatato che il veicolo noleggiato è regolarmente assicurato per la RCA nel rispetto delle condizioni e dei massimali previsti dalle Legge e si obbliga al pagamento delle somme dovute nel caso in cui il sinistro comporti un indennizzo superiore a quanto previsto dalla polizza. Nel caso in cui l'autovettura, al momento della riconsegna presenti danni alla carrozzeria, agli interni e/o alla parte meccanica, riconducibili alla responsabilità del Conduttore, lo stesso sarà obbligato a risarcire i danni riscontrati al mezzo, mediante l'utilizzo diretto da parte del locatore della carta di credito concessa a titolo di garanzia. In caso di sinistri a seguito di collisioni e/o ribaltamenti, il Conduttore dovrà compilare in ogni sua parte gli appositi moduli esistenti a bordo del veicolo noleggiato e contemporaneamente dovrà avvisare la Locatrice descrivendo il luogo e le cause dell'evento, indicando il nome di eventuali terze persone presenti al sinistro, specificando i danni riportati dagli automezzi, alle persone, alle cose e l'eventuale autorità intervenuta. Il Conduttore è tenuto a fornire la massima collaborazione alla Locatrice ed ai suoi assicuratori nelle investigazioni, nelle difese e nelle controversie derivanti dall'uso del veicolo noleggiato.</p>
+              
+              <p className="mb-2"><strong>10.</strong> Al verificarsi di un furto o incendio del veicolo noleggiato, il Conduttore si impegna ad effettuare immediata denuncia alle autorità competenti e a consegnare od inviare copia della copertura assicurativa alla Locatrice. La Locatrice si riserva il diritto di rivalersi sul Conduttore qualora la copertura assicurativa divenisse inoperante per colpa o incuria, diretta o indiretta, attribuita alla Compagnia di assicurazione del conduttore stesso.</p>
+              
+              <p className="mb-2"><strong>11.</strong> Le comunicazioni alla Locatrice di sinistro, furto, incendio, dovranno essere effettuate dal Conduttore nel più breve tempo possibile a mezzo telegramma, telefax. Qualora si verifichi uno dei suddetti eventi, sarà a carico del Cliente l'eventuale franchigia assicurativa (pari ad €250,00 oltre spese amministrative di €150,00) o scopertura assicurativa (pari al 20%) del valore commerciale del veicolo, prevista dalla polizza assicurativa in ordine alla garanzia furto e incendio (pari al 20%) del valore commerciale del veicolo.</p>
+              
+              <p className="mb-2"><strong>12.</strong> La locatrice non sarà ritenuta responsabile per perdite o danni a cose o animali lasciati all'interno o sopra il veicolo noleggiato.</p>
+              
+              <p className="mb-2"><strong>13.</strong> Il Conduttore si impegna a pagare tutte le ammende o le contravvenzioni elevate in relazione all'uso del veicolo noleggiato e a tenere indenne la Locatrice in caso di sequestro o di qualsiasi altro evento pregiudizievole. Il Conduttore è obbligato a rimborsare alla Locatrice quanto da essa anticipato per il pagamento di infrazioni dallo stesso commesse con conseguente liquidazione mediante utilizzo di carta di credito concessa a titolo di garanzia, ovvero in contante. In ogni caso il Conduttore è tenuto ad osservare diligentemente le normative previste dal codice della strada. Viene fin d'ora autorizzata a prelevare la cifra corrispondente all'importo dovuto sulla carta di credito del Cliente, oltre le somme inerenti alle spese amministrative di comunicazioni intercorse tra ente, organo di polizia o società gestionarie che ha sollevato la sanzione o il credito (somme amministrative di gestione pari ad €25,00 oltre IVA).</p>
+              
+              <p className="mb-2"><strong>14.</strong> Per qualsiasi controversia in merito al presente contratto le parti dichiarano competente il Foro della stessa città della società di noleggio.</p>
+              
+              <p className="mb-2"><strong>15.</strong> Per quanto non previsto nel presente contratto si fa riferimento alle norme del codice civile. Il Conduttore, con la sottoscrizione del presente contratto, dichiara di approvare pienamente e senza riserve quanto in esso contenuto. Agli effetti degli artt. 1341 e 1342 del C.C. il sottoscritto dichiara di approvare specificatamente le disposizioni dei seguenti articoli, delle condizioni contenute nel modello di cui sopra; art. 7 divieto di far guidare il veicolo ad altre persone - art.10 rivalsa sul Conduttore nel caso che la copertura assicurativa venisse inoperante - art. 11 pagamento dell'eventuale franchigia da parte del conduttore - art. 14 Il Conduttore si impegna a pagare tutte le ammende.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ========== PAGINA 4/4 - FIRME ========== */}
+        <div data-page="4" className="p-8 print:p-6" style={{ minHeight: '297mm' }}>
+          <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
+            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
+            <span className="text-xs text-gray-500">Pag. 4/4</span>
+          </div>
+
+          <div className="border border-black mb-8">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              X. DICHIARAZIONI E SOTTOSCRIZIONI
+            </div>
+            <div className="p-4">
+              <p className="text-sm mb-6">
+                Il sottoscritto locatario dichiara di aver letto attentamente e di accettare integralmente 
+                le condizioni generali di noleggio riportate nel presente contratto, nonché ogni clausola ivi contenuta.
+              </p>
+
+              <div className="text-sm mb-4">
+                <p>Luogo e data: <strong>{AGENCY.comune}</strong>, _______________</p>
+              </div>
+            </div>
+          </div>
+
+          {/* FIRME */}
+          <div className="border border-black">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              FIRME
+            </div>
+            <div className="grid grid-cols-2 gap-0">
+              <div className="p-6 border-r border-black text-center">
+                <p className="font-bold mb-4">IL LOCATORE / NOLEGGIATORE</p>
+                <div className="border-b-2 border-black h-24 mx-8 mb-2"></div>
+                <p className="text-sm">Firma</p>
+                <p className="text-xs text-gray-500 mt-2">{AGENCY.nome}</p>
+              </div>
+              <div className="p-6 text-center">
+                <p className="font-bold mb-4">IL LOCATARIO / CLIENTE</p>
+                <div className="border-b-2 border-black h-24 mx-8 mb-2"></div>
+                <p className="text-sm">Firma</p>
+                <p className="text-xs text-gray-500 mt-2">{cliente?.nome} {cliente?.cognome}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Firma clausole vessatorie */}
+          <div className="mt-6 border border-black p-4">
+            <p className="text-xs mb-4">
+              Firma apposta ai sensi e per gli effetti degli artt. 1341 e 1342 c.c. con specifica 
+              approvazione delle clausole eventualmente indicate nelle condizioni generali di noleggio
+              (art. 7, art. 10, art. 11, art. 14):
+            </p>
+            <div className="grid grid-cols-2 gap-8 mt-4">
+              <div className="text-center">
+                <div className="border-b-2 border-black h-16 mx-12 mb-2"></div>
+                <p className="text-xs">Firma Locatore</p>
+              </div>
+              <div className="text-center">
+                <div className="border-b-2 border-black h-16 mx-12 mb-2"></div>
+                <p className="text-xs">Firma Locatario</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 pt-4 border-t border-black text-center text-xs text-gray-500">
+            <p>{AGENCY.nome} - {AGENCY.indirizzo}, {AGENCY.cap} {AGENCY.comune} ({AGENCY.provincia})</p>
+            <p>P.IVA: {AGENCY.piva} - Tel: {AGENCY.telefono} - Email: {AGENCY.email}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stili stampa */}
+      <style>{`
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .print\\:hidden { display: none !important; }
+          @page { size: A4; margin: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
