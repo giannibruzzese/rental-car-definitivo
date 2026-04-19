@@ -1,425 +1,257 @@
+#!/usr/bin/env python3
+
 import requests
 import sys
-from datetime import datetime, timedelta
-import json
+from datetime import datetime
 
-class AutoRentAPITester:
-    def __init__(self, base_url="https://vehicle-reserve-7.preview.emergentagent.com"):
+class CarRentalAPITester:
+    def __init__(self, base_url="https://webapp-import-guide.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
-        self.admin_token = None
-        self.client_token = None
+        self.token = None
         self.tests_run = 0
         self.tests_passed = 0
-        self.test_results = []
+        self.client_user_id = None
 
-    def log_test(self, name, success, details=""):
-        """Log test result"""
-        self.tests_run += 1
-        if success:
-            self.tests_passed += 1
-            print(f"✅ {name}")
-        else:
-            print(f"❌ {name} - {details}")
-        
-        self.test_results.append({
-            "test": name,
-            "success": success,
-            "details": details
-        })
-
-    def run_test(self, name, method, endpoint, expected_status, data=None, token=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
         """Run a single API test"""
         url = f"{self.api_url}/{endpoint}"
         headers = {'Content-Type': 'application/json'}
-        if token:
-            headers['Authorization'] = f'Bearer {token}'
+        if self.token:
+            headers['Authorization'] = f'Bearer {self.token}'
 
+        self.tests_run += 1
+        print(f"\n🔍 Testing {name}...")
+        print(f"   URL: {url}")
+        if params:
+            print(f"   Params: {params}")
+        
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers)
+                response = requests.get(url, headers=headers, params=params)
             elif method == 'POST':
                 response = requests.post(url, json=data, headers=headers)
-            elif method == 'PUT':
-                response = requests.put(url, json=data, headers=headers)
-            elif method == 'PATCH':
-                response = requests.patch(url, json=data, headers=headers)
-            elif method == 'DELETE':
-                response = requests.delete(url, headers=headers)
 
-            success = response.status_code == expected_status
-            details = f"Status: {response.status_code}"
+            print(f"   Response Status: {response.status_code}")
             
-            if not success:
-                details += f", Expected: {expected_status}"
+            success = response.status_code == expected_status
+            if success:
+                self.tests_passed += 1
+                print(f"✅ PASSED - Status: {response.status_code}")
                 try:
-                    error_data = response.json()
-                    details += f", Error: {error_data.get('detail', 'Unknown error')}"
+                    response_data = response.json()
+                    return success, response_data
                 except:
-                    details += f", Response: {response.text[:100]}"
-
-            self.log_test(name, success, details)
-            return success, response.json() if success and response.content else {}
+                    return success, {}
+            else:
+                print(f"❌ FAILED - Expected {expected_status}, got {response.status_code}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
+                except:
+                    print(f"   Error: {response.text}")
+                return False, {}
 
         except Exception as e:
-            self.log_test(name, False, f"Exception: {str(e)}")
+            print(f"❌ FAILED - Network Error: {str(e)}")
             return False, {}
 
-    def test_seed_data(self):
-        """Test seeding initial data"""
-        print("\n🌱 Testing seed data...")
+    def test_client_login(self):
+        """Test client login with test credentials"""
         success, response = self.run_test(
-            "Seed initial data",
-            "POST",
-            "seed",
-            200
-        )
-        return success
-
-    def test_admin_login(self):
-        """Test admin login"""
-        print("\n🔐 Testing admin authentication...")
-        success, response = self.run_test(
-            "Admin login",
+            "Client Login",
             "POST",
             "auth/login",
             200,
-            data={"email": "admin@autorent.it", "password": "admin123"}
+            data={"email": "mario.rossi.test@email.com", "password": "password123"}
         )
         if success and 'token' in response:
-            self.admin_token = response['token']
-            print(f"   Admin token obtained: {self.admin_token[:20]}...")
+            self.token = response['token']
+            self.client_user_id = response.get('user', {}).get('id')
+            print(f"   ✅ Login successful, token obtained")
+            print(f"   User ID: {self.client_user_id}")
             return True
         return False
 
-    def test_client_registration(self):
-        """Test client registration"""
-        print("\n👤 Testing client registration...")
-        client_data = {
-            "email": f"test_client_{datetime.now().strftime('%H%M%S')}@test.com",
-            "name": "Test Client",
-            "password": "testpass123",
-            "phone": "+39 123 456 7890",
-            "address": "Via Test 123, Milano",
-            "license_number": "MI123456789"
-        }
-        
+    def test_get_vehicles(self):
+        """Test getting available vehicles"""
         success, response = self.run_test(
-            "Client registration",
-            "POST",
-            "auth/register",
-            200,
-            data=client_data
-        )
-        if success and 'token' in response:
-            self.client_token = response['token']
-            self.client_email = client_data['email']
-            print(f"   Client token obtained: {self.client_token[:20]}...")
-            return True
-        return False
-
-    def test_vehicles_api(self):
-        """Test vehicle management APIs"""
-        print("\n🚗 Testing vehicle APIs...")
-        
-        # Test public vehicles endpoint
-        self.run_test(
-            "Get public vehicles",
+            "Get Available Vehicles",
             "GET",
-            "vehicles/public",
+            "vehicles/available",
             200
         )
-        
-        # Test admin vehicles endpoint
-        self.run_test(
-            "Get all vehicles (admin)",
-            "GET",
-            "vehicles",
-            200,
-            token=self.admin_token
-        )
-        
-        # Test adding a new vehicle
-        vehicle_data = {
-            "brand": "Test Brand",
-            "model": "Test Model",
-            "year": 2024,
-            "license_plate": f"TEST{datetime.now().strftime('%H%M')}",
-            "category": "economy",
-            "daily_rate": 45.00,
-            "fuel_type": "gasoline",
-            "transmission": "manual",
-            "seats": 5,
-            "image_url": "https://example.com/test.jpg",
-            "insurance_expiry": "2026-12-31",
-            "mileage": 10000
-        }
-        
+        if success and isinstance(response, list):
+            print(f"   ✅ Found {len(response)} available vehicles")
+            # Look for Fiat Panda
+            fiat_panda = None
+            for vehicle in response:
+                if vehicle.get('marca', '').lower() == 'fiat' and 'panda' in vehicle.get('modello', '').lower():
+                    fiat_panda = vehicle
+                    break
+            
+            if fiat_panda:
+                print(f"   ✅ Found Fiat Panda: {fiat_panda['marca']} {fiat_panda['modello']} - ID: {fiat_panda['id']}")
+                print(f"   Base rate: €{fiat_panda.get('tariffa_giornaliera', 'N/A')}/day")
+                return True, fiat_panda['id']
+            else:
+                print(f"   ⚠️  Fiat Panda not found in vehicle list")
+                # Return first vehicle for testing
+                if response:
+                    first_vehicle = response[0]
+                    print(f"   Using first vehicle for testing: {first_vehicle['marca']} {first_vehicle['modello']}")
+                    return True, first_vehicle['id']
+        return False, None
+
+    def test_seasonal_pricing_july(self, vehicle_id):
+        """Test seasonal pricing for July dates (should be €75/day)"""
         success, response = self.run_test(
-            "Add new vehicle",
-            "POST",
-            "vehicles",
+            "Seasonal Pricing - July 2026 (Summer Rate)",
+            "GET",
+            "calcola-prezzo-dinamico",
             200,
-            data=vehicle_data,
-            token=self.admin_token
-        )
-        
-        if success and 'id' in response:
-            vehicle_id = response['id']
-            
-            # Test updating vehicle
-            update_data = {**vehicle_data, "daily_rate": 50.00}
-            self.run_test(
-                "Update vehicle",
-                "PUT",
-                f"vehicles/{vehicle_id}",
-                200,
-                data=update_data,
-                token=self.admin_token
-            )
-            
-            # Test vehicle status update
-            self.run_test(
-                "Update vehicle status",
-                "PATCH",
-                f"vehicles/{vehicle_id}/status?status=maintenance",
-                200,
-                token=self.admin_token
-            )
-            
-            # Test get single vehicle
-            self.run_test(
-                "Get single vehicle",
-                "GET",
-                f"vehicles/{vehicle_id}",
-                200
-            )
-            
-            return vehicle_id
-        return None
-
-    def test_bookings_api(self, vehicle_id=None):
-        """Test booking management APIs"""
-        print("\n📅 Testing booking APIs...")
-        
-        if not vehicle_id:
-            # Get first available vehicle
-            success, response = self.run_test(
-                "Get vehicles for booking",
-                "GET",
-                "vehicles/public",
-                200
-            )
-            if success and response:
-                vehicle_id = response[0]['id']
-        
-        if vehicle_id:
-            # Test creating a booking
-            booking_data = {
-                "vehicle_id": vehicle_id,
-                "pickup_date": (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d'),
-                "return_date": (datetime.now() + timedelta(days=4)).strftime('%Y-%m-%d'),
-                "pickup_location": "Sede principale",
-                "return_location": "Sede principale",
-                "notes": "Test booking"
+            params={
+                "veicolo_id": vehicle_id,
+                "data_inizio": "2026-07-01",
+                "data_fine": "2026-07-05"
             }
+        )
+        if success:
+            daily_rate = response.get('tariffa_giornaliera')
+            tariff_type = response.get('tariffa_applicata')
+            tariff_name = response.get('nome_tariffa')
             
-            success, response = self.run_test(
-                "Create booking",
-                "POST",
-                "bookings",
-                200,
-                data=booking_data,
-                token=self.client_token
-            )
+            print(f"   Daily Rate: €{daily_rate}")
+            print(f"   Tariff Type: {tariff_type}")
+            print(f"   Tariff Name: {tariff_name}")
             
-            if success and 'id' in response:
-                booking_id = response['id']
-                
-                # Test get bookings
-                self.run_test(
-                    "Get client bookings",
-                    "GET",
-                    "bookings",
-                    200,
-                    token=self.client_token
-                )
-                
-                self.run_test(
-                    "Get all bookings (admin)",
-                    "GET",
-                    "bookings",
-                    200,
-                    token=self.admin_token
-                )
-                
-                # Test get single booking
-                self.run_test(
-                    "Get single booking",
-                    "GET",
-                    f"bookings/{booking_id}",
-                    200,
-                    token=self.client_token
-                )
-                
-                # Test admin booking status update
-                self.run_test(
-                    "Update booking status to confirmed",
-                    "PATCH",
-                    f"bookings/{booking_id}/status?status=confirmed",
-                    200,
-                    token=self.admin_token
-                )
-                
-                return booking_id
-        return None
+            if daily_rate == 75.0:
+                print(f"   ✅ Correct seasonal rate applied (€75/day)")
+                return True
+            else:
+                print(f"   ❌ Expected €75/day, got €{daily_rate}/day")
+                return False
+        return False
 
-    def test_contracts_api(self, booking_id=None):
-        """Test contract management APIs"""
-        print("\n📄 Testing contract APIs...")
-        
-        if booking_id:
-            # Test creating contract from booking
-            success, response = self.run_test(
-                "Create contract from booking",
-                "POST",
-                f"contracts/from-booking/{booking_id}",
-                200,
-                token=self.admin_token
-            )
-            
-            if success and 'id' in response:
-                contract_id = response['id']
-                
-                # Test get contracts
-                self.run_test(
-                    "Get all contracts (admin)",
-                    "GET",
-                    "contracts",
-                    200,
-                    token=self.admin_token
-                )
-                
-                self.run_test(
-                    "Get client contracts",
-                    "GET",
-                    "contracts",
-                    200,
-                    token=self.client_token
-                )
-                
-                # Test get single contract
-                self.run_test(
-                    "Get single contract",
-                    "GET",
-                    f"contracts/{contract_id}",
-                    200,
-                    token=self.client_token
-                )
-                
-                # Test contract signing
-                self.run_test(
-                    "Sign contract",
-                    "PATCH",
-                    f"contracts/{contract_id}/sign",
-                    200,
-                    token=self.client_token
-                )
-                
-                # Test PDF generation
-                self.run_test(
-                    "Generate contract PDF",
-                    "GET",
-                    f"contracts/{contract_id}/pdf",
-                    200,
-                    token=self.client_token
-                )
-                
-                return contract_id
-        return None
-
-    def test_dashboard_stats(self):
-        """Test dashboard statistics"""
-        print("\n📊 Testing dashboard APIs...")
-        
-        self.run_test(
-            "Get dashboard stats",
+    def test_base_pricing_april(self, vehicle_id):
+        """Test base pricing for April dates (should be €35/day)"""
+        success, response = self.run_test(
+            "Base Pricing - April 2026 (Non-seasonal)",
             "GET",
-            "dashboard/stats",
+            "calcola-prezzo-dinamico",
             200,
-            token=self.admin_token
+            params={
+                "veicolo_id": vehicle_id,
+                "data_inizio": "2026-04-01",
+                "data_fine": "2026-04-05"
+            }
         )
-
-    def test_clients_api(self):
-        """Test client management APIs"""
-        print("\n👥 Testing client management APIs...")
-        
-        self.run_test(
-            "Get all clients (admin)",
-            "GET",
-            "clients",
-            200,
-            token=self.admin_token
-        )
-        
-        # Test profile update
-        profile_data = {
-            "name": "Updated Test Client",
-            "phone": "+39 987 654 3210"
-        }
-        
-        self.run_test(
-            "Update client profile",
-            "PUT",
-            "profile",
-            200,
-            data=profile_data,
-            token=self.client_token
-        )
-
-    def run_all_tests(self):
-        """Run all API tests"""
-        print("🚀 Starting AutoRent API Tests")
-        print(f"Testing against: {self.base_url}")
-        print("=" * 50)
-        
-        # Seed data first
-        if not self.test_seed_data():
-            print("❌ Failed to seed data, continuing with existing data...")
-        
-        # Test authentication
-        if not self.test_admin_login():
-            print("❌ Admin login failed, stopping tests")
-            return False
+        if success:
+            daily_rate = response.get('tariffa_giornaliera')
+            tariff_type = response.get('tariffa_applicata')
             
-        if not self.test_client_registration():
-            print("❌ Client registration failed, stopping tests")
-            return False
-        
-        # Test main APIs
-        vehicle_id = self.test_vehicles_api()
-        booking_id = self.test_bookings_api(vehicle_id)
-        contract_id = self.test_contracts_api(booking_id)
-        
-        # Test additional APIs
-        self.test_dashboard_stats()
-        self.test_clients_api()
-        
-        # Print summary
-        print("\n" + "=" * 50)
-        print(f"📊 Test Summary: {self.tests_passed}/{self.tests_run} tests passed")
-        
-        if self.tests_passed == self.tests_run:
-            print("🎉 All tests passed!")
+            print(f"   Daily Rate: €{daily_rate}")
+            print(f"   Tariff Type: {tariff_type}")
+            
+            if daily_rate == 35.0:
+                print(f"   ✅ Correct base rate applied (€35/day)")
+                return True
+            else:
+                print(f"   ❌ Expected €35/day, got €{daily_rate}/day")
+                return False
+        return False
+
+    def test_specific_vehicle_pricing(self):
+        """Test the specific vehicle ID mentioned in requirements"""
+        vehicle_id = "7aee8096-e295-47b1-a099-8a153ac2c3c2"
+        success, response = self.run_test(
+            "Specific Vehicle Pricing Test",
+            "GET",
+            "calcola-prezzo-dinamico",
+            200,
+            params={
+                "veicolo_id": vehicle_id,
+                "data_inizio": "2026-07-01",
+                "data_fine": "2026-07-05"
+            }
+        )
+        if success:
+            daily_rate = response.get('tariffa_giornaliera')
+            print(f"   Daily Rate for specific vehicle: €{daily_rate}")
+            
+            if daily_rate == 75.0:
+                print(f"   ✅ Specific vehicle test passed (€75/day)")
+                return True
+            else:
+                print(f"   ⚠️  Expected €75/day, got €{daily_rate}/day")
+                return False
+        return False
+
+    def test_get_vehicle_details(self, vehicle_id):
+        """Test getting specific vehicle details"""
+        success, response = self.run_test(
+            "Get Vehicle Details",
+            "GET",
+            f"vehicles/{vehicle_id}",
+            200
+        )
+        if success:
+            print(f"   Vehicle: {response.get('marca')} {response.get('modello')}")
+            print(f"   Base Rate: €{response.get('tariffa_giornaliera')}/day")
             return True
-        else:
-            print(f"⚠️  {self.tests_run - self.tests_passed} tests failed")
-            return False
+        return False
 
 def main():
-    tester = AutoRentAPITester()
-    success = tester.run_all_tests()
-    return 0 if success else 1
+    print("🚗 Car Rental Seasonal Pricing API Test")
+    print("=" * 50)
+    
+    tester = CarRentalAPITester()
+    
+    # Test 1: Client Login
+    if not tester.test_client_login():
+        print("\n❌ Login failed, stopping tests")
+        return 1
+
+    # Test 2: Get Available Vehicles
+    vehicles_success, vehicle_id = tester.test_get_vehicles()
+    if not vehicles_success or not vehicle_id:
+        print("\n❌ Failed to get vehicles, stopping tests")
+        return 1
+
+    # Test 3: Get Vehicle Details
+    tester.test_get_vehicle_details(vehicle_id)
+
+    # Test 4: Seasonal Pricing (July - should be €75)
+    july_success = tester.test_seasonal_pricing_july(vehicle_id)
+
+    # Test 5: Base Pricing (April - should be €35)
+    april_success = tester.test_base_pricing_april(vehicle_id)
+
+    # Test 6: Specific Vehicle Test (from requirements)
+    specific_success = tester.test_specific_vehicle_pricing()
+
+    # Print Results
+    print("\n" + "=" * 50)
+    print(f"📊 TEST RESULTS")
+    print(f"Tests Run: {tester.tests_run}")
+    print(f"Tests Passed: {tester.tests_passed}")
+    print(f"Success Rate: {(tester.tests_passed/tester.tests_run)*100:.1f}%")
+    
+    # Critical test results
+    critical_tests = [july_success, april_success]
+    critical_passed = sum(critical_tests)
+    
+    print(f"\n🎯 CRITICAL SEASONAL PRICING TESTS:")
+    print(f"July Seasonal Rate (€75): {'✅ PASS' if july_success else '❌ FAIL'}")
+    print(f"April Base Rate (€35): {'✅ PASS' if april_success else '❌ FAIL'}")
+    print(f"Specific Vehicle Test: {'✅ PASS' if specific_success else '❌ FAIL'}")
+    
+    if critical_passed == 2:
+        print(f"\n🎉 All critical seasonal pricing tests PASSED!")
+        return 0
+    else:
+        print(f"\n⚠️  {2-critical_passed} critical test(s) FAILED")
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main())

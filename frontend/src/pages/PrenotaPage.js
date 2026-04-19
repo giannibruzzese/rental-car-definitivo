@@ -15,6 +15,10 @@ import {
 import { format, differenceInDays, addDays } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { toast } from 'sonner';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const PROVINCES = ['AG', 'AL', 'AN', 'AO', 'AR', 'AP', 'AT', 'AV', 'BA', 'BT', 'BL', 'BN', 'BG', 'BI', 'BO', 'BZ', 'BS', 'BR', 'CA', 'CL', 'CB', 'CI', 'CE', 'CT', 'CZ', 'CH', 'CO', 'CS', 'CR', 'KR', 'CN', 'EN', 'FM', 'FE', 'FI', 'FG', 'FC', 'FR', 'GE', 'GO', 'GR', 'IM', 'IS', 'SP', 'AQ', 'LT', 'LE', 'LC', 'LI', 'LO', 'LU', 'MC', 'MN', 'MS', 'MT', 'ME', 'MI', 'MO', 'MB', 'NA', 'NO', 'NU', 'OG', 'OT', 'OR', 'PD', 'PA', 'PR', 'PV', 'PG', 'PU', 'PE', 'PC', 'PI', 'PT', 'PN', 'PZ', 'PO', 'RG', 'RA', 'RC', 'RE', 'RI', 'RN', 'RM', 'RO', 'SA', 'VS', 'SS', 'SV', 'SI', 'SR', 'SO', 'TA', 'TE', 'TR', 'TO', 'TP', 'TN', 'TV', 'TS', 'UD', 'VA', 'VE', 'VB', 'VC', 'VR', 'VV', 'VI', 'VT'];
 const LICENSE_CATEGORIES = ['AM', 'A1', 'A2', 'A', 'B', 'B1', 'BE', 'C', 'C1', 'CE', 'D', 'D1', 'DE'];
@@ -42,6 +46,10 @@ export default function PrenotaPage() {
   const [returnTime, setReturnTime] = useState('18:00');
   const [note, setNote] = useState('');
   
+  // Tariffa stagionale
+  const [tariffaStagionale, setTariffaStagionale] = useState(null);
+  const [loadingTariffa, setLoadingTariffa] = useState(false);
+
   // Additional drivers
   const [conducentiAggiuntivi, setConducentiAggiuntivi] = useState([]);
   const [showDriverForm, setShowDriverForm] = useState(false);
@@ -63,8 +71,35 @@ export default function PrenotaPage() {
     fetchVehicle();
   }, [vehicleId, token, navigate]);
 
+  // Fetch tariffa stagionale quando cambiano le date o il veicolo
+  useEffect(() => {
+    const fetchTariffaStagionale = async () => {
+      if (!vehicle || !pickupDate || !returnDate) return;
+      
+      setLoadingTariffa(true);
+      try {
+        const res = await axios.get(`${API}/calcola-prezzo-dinamico`, {
+          params: {
+            veicolo_id: vehicleId,
+            data_inizio: format(pickupDate, 'yyyy-MM-dd'),
+            data_fine: format(returnDate, 'yyyy-MM-dd')
+          }
+        });
+        setTariffaStagionale(res.data);
+      } catch (error) {
+        console.error('Errore calcolo tariffa:', error);
+        setTariffaStagionale(null);
+      } finally {
+        setLoadingTariffa(false);
+      }
+    };
+    
+    fetchTariffaStagionale();
+  }, [vehicle, vehicleId, pickupDate, returnDate]);
+
   const days = Math.max(1, differenceInDays(returnDate, pickupDate));
-  const totalPrice = vehicle ? days * vehicle.tariffa_giornaliera : 0;
+  const dailyRate = tariffaStagionale?.tariffa_giornaliera || vehicle?.tariffa_giornaliera || 0;
+  const totalPrice = days * dailyRate;
   const kmInclusi = vehicle ? days * vehicle.km_inclusi_giorno : 0;
 
   const validateDriver = () => {
@@ -401,8 +436,27 @@ export default function PrenotaPage() {
                 <div className="border-t border-slate-200 pt-4 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Tariffa giornaliera</span>
-                    <span className="font-medium">€{vehicle?.tariffa_giornaliera}</span>
+                    <span className="font-medium">
+                      {loadingTariffa ? (
+                        <span className="text-slate-400">Calcolo...</span>
+                      ) : (
+                        <>€{dailyRate.toFixed(2)}</>
+                      )}
+                    </span>
                   </div>
+                  
+                  {/* Box tariffa stagionale applicata */}
+                  {!loadingTariffa && tariffaStagionale && tariffaStagionale.tariffa_applicata !== 'base' && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-xs" data-testid="seasonal-rate-info">
+                      <p className="text-green-700 font-medium flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" /> Tariffa stagionale applicata
+                      </p>
+                      <p className="text-green-600 mt-0.5">
+                        {tariffaStagionale.nome_tariffa} {tariffaStagionale.periodo && `(${tariffaStagionale.periodo})`}
+                      </p>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between">
                     <span className="text-slate-600">Giorni</span>
                     <span className="font-medium">{days}</span>
@@ -418,7 +472,7 @@ export default function PrenotaPage() {
                   <hr />
                   <div className="flex justify-between text-lg">
                     <span className="font-semibold">Totale</span>
-                    <span className="font-bold text-blue-600">€{totalPrice.toFixed(2)}</span>
+                    <span className="font-bold text-blue-600" data-testid="total-price">€{totalPrice.toFixed(2)}</span>
                   </div>
                 </div>
                 

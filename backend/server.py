@@ -735,7 +735,7 @@ async def calcola_prezzo_dinamico(
                 if t.get("veicolo_id") == veicolo_id:
                     # Vehicle-specific rate
                     tariffe_specifiche.append(t)
-                elif t.get("veicolo_id") is None or t.get("veicolo_id") == "":
+                elif t.get("veicolo_id") is None or t.get("veicolo_id") == "" or t.get("veicolo_id") == "tutti":
                     # General rate
                     tariffe_generali.append(t)
         except:
