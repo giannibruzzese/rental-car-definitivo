@@ -1171,7 +1171,60 @@ async def create_prenotazione(data: PrenotazioneCreate, user: dict = Depends(get
     durata_ore = (data_riconsegna - data_ritiro).total_seconds() / 3600
     durata_giorni = max(1, int(durata_ore / 24) + (1 if durata_ore % 24 > 0 else 0))
     
-    tariffa_base = durata_giorni * vehicle["tariffa_giornaliera"]
+    tariffa_giornaliera = vehicle["tariffa_giornaliera"]
+    tariffa_stagionale_info = None
+    
+    # Check for seasonal rate
+    from datetime import datetime as dt
+    try:
+        start_date = dt.strptime(data.data_ritiro, "%Y-%m-%d").date()
+        end_date = dt.strptime(data.data_riconsegna, "%Y-%m-%d").date()
+        tariffe = await db.tariffe_stagionali.find({}, {"_id": 0}).to_list(100)
+        
+        tariffe_specifiche = []
+        tariffe_generali = []
+        
+        for t in tariffe:
+            try:
+                t_inizio = dt.strptime(t["data_inizio"], "%Y-%m-%d").date()
+                t_fine = dt.strptime(t["data_fine"], "%Y-%m-%d").date()
+                if start_date >= t_inizio and start_date <= t_fine:
+                    durata_periodo = (t_fine - t_inizio).days
+                    t["_durata_periodo"] = durata_periodo
+                    if t.get("veicolo_id") == data.veicolo_id:
+                        tariffe_specifiche.append(t)
+                    elif t.get("veicolo_id") is None or t.get("veicolo_id") == "" or t.get("veicolo_id") == "tutti":
+                        tariffe_generali.append(t)
+            except:
+                continue
+        
+        tariffe_specifiche.sort(key=lambda x: x.get("_durata_periodo", 9999))
+        tariffe_generali.sort(key=lambda x: x.get("_durata_periodo", 9999))
+        
+        if tariffe_specifiche:
+            best = tariffe_specifiche[0]
+            tariffa_giornaliera = best["tariffa_giornaliera"]
+            tariffa_stagionale_info = {
+                "nome": best["nome"],
+                "tariffa_giornaliera": best["tariffa_giornaliera"],
+                "data_inizio": best["data_inizio"],
+                "data_fine": best["data_fine"],
+                "tipo": "specifica"
+            }
+        elif tariffe_generali:
+            best = tariffe_generali[0]
+            tariffa_giornaliera = best["tariffa_giornaliera"]
+            tariffa_stagionale_info = {
+                "nome": best["nome"],
+                "tariffa_giornaliera": best["tariffa_giornaliera"],
+                "data_inizio": best["data_inizio"],
+                "data_fine": best["data_fine"],
+                "tipo": "generale"
+            }
+    except Exception as e:
+        logger.warning(f"Error checking seasonal rate: {e}")
+    
+    tariffa_base = durata_giorni * tariffa_giornaliera
     km_inclusi_totali = durata_giorni * vehicle["km_inclusi_giorno"]
     
     prenotazione_id = str(uuid.uuid4())
@@ -1193,6 +1246,8 @@ async def create_prenotazione(data: PrenotazioneCreate, user: dict = Depends(get
         "ora_riconsegna": data.ora_riconsegna,
         "durata_giorni": durata_giorni,
         "tariffa_base": tariffa_base,
+        "tariffa_giornaliera": tariffa_giornaliera,
+        "tariffa_stagionale": tariffa_stagionale_info,
         "km_inclusi_totali": km_inclusi_totali,
         "prezzo_km_extra": vehicle["prezzo_km_extra"],
         "deposito_cauzionale": vehicle["deposito_cauzionale"],
@@ -1485,7 +1540,8 @@ async def admin_update_prenotazione(prenotazione_id: str, data: dict, admin: dic
         # Chilometraggio
         "km_uscita", "km_inclusi_totali", "prezzo_km_extra", "tacche_carburante_uscita",
         # Costi - TUTTI i campi
-        "tariffa_base", "totale_servizi", "totale_franchigie", "totale_noleggio",
+        "tariffa_base", "tariffa_giornaliera", "tariffa_stagionale",
+        "totale_servizi", "totale_franchigie", "totale_noleggio",
         "acconto", "deposito_cauzionale",
         # Check-in/Check-out
         "contratto_check_in", "contratto_check_out",
@@ -1502,7 +1558,9 @@ async def admin_update_prenotazione(prenotazione_id: str, data: dict, admin: dic
         "garante_nome", "garante_recapiti", "garante_documento",
         # METODO PAGAMENTO
         "pagamento_contanti", "pagamento_carta", "pagamento_bonifico",
-        "pagamento_altro", "pagamento_altro_desc"
+        "pagamento_altro", "pagamento_altro_desc",
+        # Status
+        "status"
     ]
     
     update_data = {k: v for k, v in data.items() if k in allowed_fields}

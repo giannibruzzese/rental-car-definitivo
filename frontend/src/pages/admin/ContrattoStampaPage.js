@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { addDays, format, parseISO } from 'date-fns';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -300,6 +301,118 @@ export default function ContrattoStampaPage() {
     setEditedData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Funzione per cambiare la durata del noleggio e aggiornare date + prezzi
+  const handleDurataChange = async (newDurata) => {
+    const durata = parseInt(newDurata) || 1;
+    const dataRitiro = editedData.data_ritiro || prenotazione.data_ritiro;
+    
+    // Calcola nuova data riconsegna
+    let nuovaDataRiconsegna = dataRitiro;
+    try {
+      const ritiroDate = parseISO(dataRitiro);
+      nuovaDataRiconsegna = format(addDays(ritiroDate, durata), 'yyyy-MM-dd');
+    } catch (e) {
+      console.error('Error parsing date:', e);
+    }
+    
+    // Fetch tariffa stagionale per il nuovo periodo
+    const veicoloId = editedData.veicolo_id || prenotazione.veicolo_id;
+    let tariffaGiornaliera = editedData.tariffa_giornaliera || prenotazione.tariffa_giornaliera || 50;
+    let tariffaStagionaleInfo = editedData.tariffa_stagionale || prenotazione.tariffa_stagionale || null;
+    
+    try {
+      const res = await axios.get(`${API}/api/calcola-prezzo-dinamico`, {
+        params: {
+          veicolo_id: veicoloId,
+          data_inizio: dataRitiro,
+          data_fine: nuovaDataRiconsegna
+        }
+      });
+      tariffaGiornaliera = res.data.tariffa_giornaliera;
+      if (res.data.tariffa_applicata !== 'base') {
+        tariffaStagionaleInfo = {
+          nome: res.data.nome_tariffa,
+          tariffa_giornaliera: res.data.tariffa_giornaliera,
+          periodo: res.data.periodo,
+          tipo: res.data.tariffa_applicata
+        };
+      } else {
+        tariffaStagionaleInfo = null;
+      }
+    } catch (e) {
+      console.error('Error fetching seasonal rate:', e);
+    }
+    
+    const nuovaTariffaBase = tariffaGiornaliera * durata;
+    const kmInclusiGiorno = editedData.km_inclusi_giorno || prenotazione.km_inclusi_giorno || 200;
+    const nuoviKmInclusi = kmInclusiGiorno * durata;
+    
+    setEditedData(prev => ({
+      ...prev,
+      durata_giorni: durata,
+      data_riconsegna: nuovaDataRiconsegna,
+      tariffa_giornaliera: tariffaGiornaliera,
+      tariffa_stagionale: tariffaStagionaleInfo,
+      tariffa_base: nuovaTariffaBase,
+      km_inclusi_totali: nuoviKmInclusi,
+      totale_noleggio: nuovaTariffaBase + (prev.totale_servizi || 0) + (prev.totale_franchigie || 0)
+    }));
+    
+    toast.info(`Durata aggiornata: ${durata} giorni → Riconsegna: ${formatDateIT(nuovaDataRiconsegna)} | €${tariffaGiornaliera}/gg`);
+  };
+
+  // Funzione per cambiare la data di ritiro e ricalcolare tutto
+  const handleDataRitiroChange = async (newDataRitiro) => {
+    const durata = editedData.durata_giorni || prenotazione.durata_giorni || 1;
+    let nuovaDataRiconsegna = newDataRitiro;
+    try {
+      const ritiroDate = parseISO(newDataRitiro);
+      nuovaDataRiconsegna = format(addDays(ritiroDate, durata), 'yyyy-MM-dd');
+    } catch (e) {
+      console.error('Error parsing date:', e);
+    }
+    
+    // Fetch tariffa stagionale per il nuovo periodo
+    const veicoloId = editedData.veicolo_id || prenotazione.veicolo_id;
+    let tariffaGiornaliera = editedData.tariffa_giornaliera || prenotazione.tariffa_giornaliera || 50;
+    let tariffaStagionaleInfo = editedData.tariffa_stagionale || prenotazione.tariffa_stagionale || null;
+    
+    try {
+      const res = await axios.get(`${API}/api/calcola-prezzo-dinamico`, {
+        params: {
+          veicolo_id: veicoloId,
+          data_inizio: newDataRitiro,
+          data_fine: nuovaDataRiconsegna
+        }
+      });
+      tariffaGiornaliera = res.data.tariffa_giornaliera;
+      if (res.data.tariffa_applicata !== 'base') {
+        tariffaStagionaleInfo = {
+          nome: res.data.nome_tariffa,
+          tariffa_giornaliera: res.data.tariffa_giornaliera,
+          periodo: res.data.periodo,
+          tipo: res.data.tariffa_applicata
+        };
+      } else {
+        tariffaStagionaleInfo = null;
+      }
+    } catch (e) {
+      console.error('Error fetching seasonal rate:', e);
+    }
+    
+    const nuovaTariffaBase = tariffaGiornaliera * durata;
+    
+    setEditedData(prev => ({
+      ...prev,
+      data_ritiro: newDataRitiro,
+      data_riconsegna: nuovaDataRiconsegna,
+      tariffa_giornaliera: tariffaGiornaliera,
+      tariffa_stagionale: tariffaStagionaleInfo,
+      tariffa_base: nuovaTariffaBase,
+      totale_noleggio: nuovaTariffaBase + (prev.totale_servizi || 0) + (prev.totale_franchigie || 0)
+    }));
+  };
+
   // Funzione per cambiare veicolo e aggiornare automaticamente tutti i costi
   const handleVeicoloChange = (veicoloId) => {
     const veicolo = veicoli.find(v => v.id === veicoloId);
@@ -456,7 +569,7 @@ export default function ContrattoStampaPage() {
                 <div className="text-gray-600">Dal:</div>
                 {isEditing ? (
                   <div className="flex gap-1">
-                    <Input type="date" value={p.data_ritiro} onChange={e => updateField('data_ritiro', e.target.value)} className="h-6 text-xs flex-1" />
+                    <Input type="date" value={p.data_ritiro} onChange={e => handleDataRitiroChange(e.target.value)} className="h-6 text-xs flex-1" />
                     <Input type="time" value={p.ora_ritiro} onChange={e => updateField('ora_ritiro', e.target.value)} className="h-6 text-xs w-16" />
                   </div>
                 ) : (
@@ -477,7 +590,7 @@ export default function ContrattoStampaPage() {
               <div className="border-r border-black p-2">
                 <div className="text-gray-600">Durata:</div>
                 {isEditing ? (
-                  <Input type="number" value={p.durata_giorni} onChange={e => updateField('durata_giorni', parseInt(e.target.value))} className="h-6 text-xs w-12" />
+                  <Input type="number" min="1" value={p.durata_giorni} onChange={e => handleDurataChange(e.target.value)} className="h-6 text-xs w-12" />
                 ) : (
                   <div className="font-semibold">{p.durata_giorni} gg</div>
                 )}
@@ -957,7 +1070,29 @@ export default function ContrattoStampaPage() {
                 <table className="w-full text-xs">
                   <tbody>
                     <tr>
-                      <td className="py-0.5">Tariffa base noleggio:</td>
+                      <td className="py-0.5">Tariffa giornaliera:</td>
+                      <td className="text-right">
+                        {(p.tariffa_giornaliera || (p.tariffa_base / (p.durata_giorni || 1))).toFixed(2)} €/gg
+                      </td>
+                    </tr>
+                    {/* Tariffa Stagionale */}
+                    {p.tariffa_stagionale && (
+                      <tr>
+                        <td colSpan="2" className="py-0.5">
+                          <div className="bg-green-50 border border-green-200 rounded px-1.5 py-0.5 text-[9px] text-green-700">
+                            Tariffa stagionale: <strong>{p.tariffa_stagionale.nome}</strong>
+                            {p.tariffa_stagionale.data_inizio && (
+                              <span> ({formatDateIT(p.tariffa_stagionale.data_inizio)} - {formatDateIT(p.tariffa_stagionale.data_fine)})</span>
+                            )}
+                            {p.tariffa_stagionale.periodo && !p.tariffa_stagionale.data_inizio && (
+                              <span> ({p.tariffa_stagionale.periodo})</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    <tr>
+                      <td className="py-0.5">Tariffa base ({p.durata_giorni} gg):</td>
                       <td className="text-right">
                         {isEditing ? (
                           <Input type="number" step="0.01" value={p.tariffa_base || ''} onChange={e => updateField('tariffa_base', parseFloat(e.target.value))} className="h-5 text-xs w-20 text-right" />
