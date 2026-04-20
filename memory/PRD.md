@@ -1,44 +1,31 @@
 # RE.LE.CO. GROUP / SOVERATO RENTAL - Sistema Gestione Noleggio Auto
 
-## Problem Statement Originale
-Web app per gestione noleggio auto RE.LE.CO. GROUP con contratto HTML stampabile identico al PDF allegato.
-
-## Importazione Codebase (19/04/2026)
-- Repository GitHub: https://github.com/Giannibru69/noleggio-car-DEF
-
 ## Funzionalità Implementate (sessione 19-20/04/2026)
 
-### 1. Tariffe Stagionali Dinamiche nel Frontend Cliente
-- PrenotaPage.js chiama `/api/calcola-prezzo-dinamico` automaticamente al cambio date
-- Box verde "Tariffa stagionale applicata" con nome e periodo
+### 1. Tariffe Stagionali Dinamiche
+- PrenotaPage.js chiama `/api/calcola-prezzo-dinamico` automaticamente
+- Backend salva tariffa_stagionale nella prenotazione
+- Contratto mostra box verde con nome/periodo tariffa stagionale
 
-### 2. Riorganizzazione Layout Contratto (5 pagine)
-- Pag.1: I, II, III | Pag.2: IV, V, V-BIS, VI | Pag.3: VII, VIII | Pag.4: IX (font ridotto) | Pag.5: Firme
+### 2. Layout Contratto 5 pagine
+- Pag.1: I,II,III | Pag.2: IV,V,V-BIS,VI | Pag.3: VII,VIII | Pag.4: IX | Pag.5: Firme
 
-### 3. Tariffa Stagionale nel Contratto
-- Backend salva `tariffa_stagionale` e `tariffa_giornaliera` nella prenotazione al momento della creazione
-- Il contratto mostra box verde con nome e periodo della tariffa stagionale nel Riepilogo Economico
-- Tariffa giornaliera e tariffa base calcolate con tariffa stagionale quando applicabile
+### 3. Modifica Durata con Ricalcolo
+- Cambiando giorni → data riconsegna, tariffa, km inclusi si aggiornano automaticamente
 
-### 4. Modifica Durata Contratto con Ricalcolo Automatico
-- Modificando i giorni di durata → si aggiorna automaticamente la data di riconsegna
-- Si ricalcola tariffa base, km inclusi, totale noleggio
-- Si ri-verifica la tariffa stagionale per il nuovo periodo
-- Modificando la data di ritiro → si aggiorna data riconsegna mantenendo durata
-- Toast informativo con dettagli aggiornamento
+### 4. V-BIS Editabile (Rientro & Addebiti)
+- DATI RIENTRO: data/ora, km entrata, km percorsi/eccedenza, tacche carburante
+- ADDEBITI: danni, gestione danni, carburante, pulizia, altri + somma automatica
+- Totale addebiti si somma al Saldo alla consegna nel Riepilogo Economico
 
-### 5. Fix Backend
-- `veicolo_id="tutti"` riconosciuto come tariffa generale in calcola-prezzo-dinamico
+### 5. Coperture Assicurative Escludibili
+- Checkbox per includere/escludere KASKO e Penalità sinistro dal totale
+- Franchigie escluse mostrate barrate e con "(ESCLUSA)"
+- Totale franchigie e Saldo si aggiornano dinamicamente
 
-## Credenziali Test
-- Admin: `admin@relecogroup.it` / `admin123`
-- Cliente: `mario.rossi.test@email.com` / `password123`
+## Credenziali
+- Admin: admin@relecogroup.it / admin123
+- Cliente: mario.rossi.test@email.com / password123
 
-## Backlog
-### P1
-- [ ] Configurare Resend API key per invio email reale
-- [ ] Firma digitale/grafometrica nel PDF
-### P2
-- [ ] Dashboard ricavi / Statistiche
-- [ ] Bot Telegram per alert ritardo consegna
-- [ ] Multi-lingua
+## Backlog P1
+- [ ] Resend API email | [ ] Firma digitale PDF | [ ] Dashboard ricavi
