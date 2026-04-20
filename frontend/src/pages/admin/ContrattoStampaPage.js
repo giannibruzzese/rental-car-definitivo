@@ -905,10 +905,39 @@ export default function ContrattoStampaPage() {
                 <div className="font-bold mb-2">Periodo di noleggio</div>
                 <p>
                   <span className="text-gray-600">Durata:</span>{' '}
-                  <strong>{p.durata_giorni} giorni</strong>
+                  {isEditing ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Input type="number" min="1" value={p.durata_giorni} onChange={e => handleDurataChange(e.target.value)} className="h-5 text-xs w-12 inline" />
+                      <span>giorni</span>
+                    </span>
+                  ) : (
+                    <strong>{p.durata_giorni} giorni</strong>
+                  )}
                 </p>
-                <p><span className="text-gray-600">Dal:</span> {formatDateIT(p.data_ritiro)} ore {p.ora_ritiro}</p>
-                <p><span className="text-gray-600">Al:</span> {formatDateIT(p.data_riconsegna)} ore {p.ora_riconsegna}</p>
+                <p>
+                  <span className="text-gray-600">Dal:</span>{' '}
+                  {isEditing ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Input type="date" value={p.data_ritiro} onChange={e => handleDataRitiroChange(e.target.value)} className="h-5 text-xs w-28 inline" />
+                      <span>ore</span>
+                      <Input type="time" value={p.ora_ritiro} onChange={e => updateField('ora_ritiro', e.target.value)} className="h-5 text-xs w-16 inline" />
+                    </span>
+                  ) : (
+                    <span>{formatDateIT(p.data_ritiro)} ore {p.ora_ritiro}</span>
+                  )}
+                </p>
+                <p>
+                  <span className="text-gray-600">Al:</span>{' '}
+                  {isEditing ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Input type="date" value={p.data_riconsegna} onChange={e => updateField('data_riconsegna', e.target.value)} className="h-5 text-xs w-28 inline" />
+                      <span>ore</span>
+                      <Input type="time" value={p.ora_riconsegna} onChange={e => updateField('ora_riconsegna', e.target.value)} className="h-5 text-xs w-16 inline" />
+                    </span>
+                  ) : (
+                    <span>{formatDateIT(p.data_riconsegna)} ore {p.ora_riconsegna}</span>
+                  )}
+                </p>
               </div>
               <div className="border-r border-black p-3">
                 <div className="font-bold mb-2">Chilometraggio</div>
