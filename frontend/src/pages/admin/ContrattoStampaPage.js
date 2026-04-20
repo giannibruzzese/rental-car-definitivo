@@ -282,7 +282,31 @@ export default function ContrattoStampaPage() {
         pagamento_carta: editedData.pagamento_carta,
         pagamento_bonifico: editedData.pagamento_bonifico,
         pagamento_altro: editedData.pagamento_altro,
-        pagamento_altro_desc: editedData.pagamento_altro_desc
+        pagamento_altro_desc: editedData.pagamento_altro_desc,
+        // TARIFFA STAGIONALE
+        tariffa_giornaliera: editedData.tariffa_giornaliera,
+        tariffa_stagionale: editedData.tariffa_stagionale,
+        // RIENTRO
+        rientro_data: editedData.rientro_data,
+        rientro_ora: editedData.rientro_ora,
+        rientro_km_entrata: editedData.rientro_km_entrata,
+        rientro_km_percorsi: editedData.rientro_km_percorsi,
+        rientro_km_eccedenza: editedData.rientro_km_eccedenza,
+        rientro_importo_km_eccedenza: editedData.rientro_importo_km_eccedenza,
+        rientro_tacche_carburante: editedData.rientro_tacche_carburante,
+        // ADDEBITI RIENTRO
+        addebito_danni: editedData.addebito_danni,
+        addebito_gestione_danni: editedData.addebito_gestione_danni,
+        addebito_carburante: editedData.addebito_carburante,
+        addebito_pulizia: editedData.addebito_pulizia,
+        addebito_altro: editedData.addebito_altro,
+        totale_addebiti_rientro: editedData.totale_addebiti_rientro,
+        // FRANCHIGIE INCLUSE/ESCLUSE
+        franchigia_kasko: editedData.franchigia_kasko,
+        franchigia_sinistro: editedData.franchigia_sinistro,
+        scoperto_furto: editedData.scoperto_furto,
+        franchigia_kasko_inclusa: editedData.franchigia_kasko_inclusa,
+        franchigia_sinistro_inclusa: editedData.franchigia_sinistro_inclusa
       };
       
       await axios.put(`${API}/api/prenotazioni/${id}/admin-update`, updatePayload, {
@@ -995,7 +1019,13 @@ export default function ContrattoStampaPage() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="border border-black p-1">Attivazione CASCO con franchigia danni</td>
+                      <td className="border border-black p-1">
+                        {isEditing && (
+                          <input type="checkbox" checked={p.franchigia_kasko_inclusa !== false} onChange={e => updateField('franchigia_kasko_inclusa', e.target.checked)} className="w-3 h-3 mr-1" />
+                        )}
+                        Attivazione CASCO con franchigia danni
+                        {!isEditing && p.franchigia_kasko_inclusa === false && <span className="text-red-500 text-[9px] ml-1">(ESCLUSA)</span>}
+                      </td>
                       <td className="border border-black p-1 text-right">
                         {isEditing ? (
                           <Input 
@@ -1005,19 +1035,22 @@ export default function ContrattoStampaPage() {
                             onChange={e => {
                               const val = parseFloat(e.target.value) || 0;
                               updateField('franchigia_kasko', val);
-                              // Ricalcola totale
-                              const penalita = p.franchigia_sinistro ?? 250;
-                              updateField('totale_franchigie', val + penalita);
                             }} 
                             className="h-5 text-xs w-20 text-right" 
                           />
                         ) : (
-                          <span className="font-semibold">€ {(p.franchigia_kasko ?? 500).toFixed(2)}</span>
+                          <span className={`font-semibold ${p.franchigia_kasko_inclusa === false ? 'line-through text-gray-400' : ''}`}>€ {(p.franchigia_kasko ?? 500).toFixed(2)}</span>
                         )}
                       </td>
                     </tr>
                     <tr>
-                      <td className="border border-black p-1">Penalità per sinistro con responsabilità</td>
+                      <td className="border border-black p-1">
+                        {isEditing && (
+                          <input type="checkbox" checked={p.franchigia_sinistro_inclusa !== false} onChange={e => updateField('franchigia_sinistro_inclusa', e.target.checked)} className="w-3 h-3 mr-1" />
+                        )}
+                        Penalità per sinistro con responsabilità
+                        {!isEditing && p.franchigia_sinistro_inclusa === false && <span className="text-red-500 text-[9px] ml-1">(ESCLUSA)</span>}
+                      </td>
                       <td className="border border-black p-1 text-right">
                         {isEditing ? (
                           <Input 
@@ -1027,14 +1060,11 @@ export default function ContrattoStampaPage() {
                             onChange={e => {
                               const val = parseFloat(e.target.value) || 0;
                               updateField('franchigia_sinistro', val);
-                              // Ricalcola totale
-                              const kasko = p.franchigia_kasko ?? 500;
-                              updateField('totale_franchigie', kasko + val);
                             }} 
                             className="h-5 text-xs w-20 text-right" 
                           />
                         ) : (
-                          <span className="font-semibold">€ {(p.franchigia_sinistro ?? 250).toFixed(2)}</span>
+                          <span className={`font-semibold ${p.franchigia_sinistro_inclusa === false ? 'line-through text-gray-400' : ''}`}>€ {(p.franchigia_sinistro ?? 250).toFixed(2)}</span>
                         )}
                       </td>
                     </tr>
@@ -1056,7 +1086,10 @@ export default function ContrattoStampaPage() {
                     <tr className="bg-yellow-50">
                       <td className="border border-black p-1 font-semibold">Totale franchigie contratto</td>
                       <td className="border border-black p-1 text-right font-bold">
-                        € {((p.franchigia_kasko ?? 500) + (p.franchigia_sinistro ?? 250)).toFixed(2)}
+                        € {(
+                          (p.franchigia_kasko_inclusa !== false ? (p.franchigia_kasko ?? 500) : 0) + 
+                          (p.franchigia_sinistro_inclusa !== false ? (p.franchigia_sinistro ?? 250) : 0)
+                        ).toFixed(2)}
                       </td>
                     </tr>
                   </tbody>
@@ -1116,11 +1149,21 @@ export default function ContrattoStampaPage() {
                     <tr>
                       <td className="py-0.5">Franchigie assicurative:</td>
                       <td className="text-right">
-                        {((p.franchigia_kasko ?? 500) + (p.franchigia_sinistro ?? 250)).toFixed(2)} €
+                        {(
+                          (p.franchigia_kasko_inclusa !== false ? (p.franchigia_kasko ?? 500) : 0) + 
+                          (p.franchigia_sinistro_inclusa !== false ? (p.franchigia_sinistro ?? 250) : 0)
+                        ).toFixed(2)} €
                       </td>
                     </tr>
-                    <tr><td className="py-0.5">Chilometri eccedenza:</td><td className="text-right">0,00 €</td></tr>
-                    <tr className="border-t border-black font-bold"><td className="py-1">Totale (IVA inclusa):</td><td className="text-right">{((p.tariffa_base || 0) + (p.totale_servizi || 0) + (p.totale_franchigie || 0)).toFixed(2)} €</td></tr>
+                    <tr><td className="py-0.5">Chilometri eccedenza:</td><td className="text-right">{(p.rientro_importo_km_eccedenza || 0).toFixed(2)} €</td></tr>
+                    <tr><td className="py-0.5">Addebiti rientro:</td><td className="text-right">{(p.totale_addebiti_rientro || 0).toFixed(2)} €</td></tr>
+                    <tr className="border-t border-black font-bold"><td className="py-1">Totale (IVA inclusa):</td><td className="text-right">{(
+                      (p.tariffa_base || 0) + 
+                      (p.totale_servizi || 0) + 
+                      (p.franchigia_kasko_inclusa !== false ? (p.franchigia_kasko ?? 500) : 0) + 
+                      (p.franchigia_sinistro_inclusa !== false ? (p.franchigia_sinistro ?? 250) : 0) +
+                      (p.totale_addebiti_rientro || 0)
+                    ).toFixed(2)} €</td></tr>
                     <tr>
                       <td className="py-0.5">Acconto già versato:</td>
                       <td className="text-right">
@@ -1131,7 +1174,14 @@ export default function ContrattoStampaPage() {
                         )}
                       </td>
                     </tr>
-                    <tr className="bg-yellow-100 font-bold"><td className="py-1">Saldo alla consegna:</td><td className="text-right">{((p.tariffa_base || 0) + (p.totale_servizi || 0) + (p.totale_franchigie || 0) - (p.acconto || 0)).toFixed(2)} €</td></tr>
+                    <tr className="bg-yellow-100 font-bold"><td className="py-1">Saldo alla consegna:</td><td className="text-right">{(
+                      (p.tariffa_base || 0) + 
+                      (p.totale_servizi || 0) + 
+                      (p.franchigia_kasko_inclusa !== false ? (p.franchigia_kasko ?? 500) : 0) + 
+                      (p.franchigia_sinistro_inclusa !== false ? (p.franchigia_sinistro ?? 250) : 0) +
+                      (p.totale_addebiti_rientro || 0) -
+                      (p.acconto || 0)
+                    ).toFixed(2)} €</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1147,23 +1197,89 @@ export default function ContrattoStampaPage() {
               <div className="p-3 border-r border-black">
                 <div className="font-bold mb-2">DATI RIENTRO</div>
                 <div className="space-y-1">
-                  <p>Data/ora rientro effettivo: _____________________</p>
-                  <p>Km entrata: _________ Km percorsi: _________</p>
-                  <p>Km inclusi totali: {p.km_inclusi_totali}</p>
-                  <p>Km eccedenza: _________ Importo km eccedenza: €_________</p>
-                  <p>Tacche carburante entrata: _____ / 8</p>
+                  {isEditing ? (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600 w-32">Data/ora rientro:</span>
+                        <Input type="date" value={p.rientro_data || ''} onChange={e => updateField('rientro_data', e.target.value)} className="h-5 text-xs flex-1" />
+                        <Input type="time" value={p.rientro_ora || ''} onChange={e => updateField('rientro_ora', e.target.value)} className="h-5 text-xs w-16" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600 w-32">Km entrata:</span>
+                        <Input type="number" value={p.rientro_km_entrata || ''} onChange={e => {
+                          const kmEntrata = parseInt(e.target.value) || 0;
+                          const kmUscita = parseInt(p.km_uscita) || 0;
+                          const kmPercorsi = Math.max(0, kmEntrata - kmUscita);
+                          const kmInclusi = p.km_inclusi_totali || 0;
+                          const kmEccedenza = Math.max(0, kmPercorsi - (typeof kmInclusi === 'number' ? kmInclusi : 0));
+                          const prezzoKmExtra = p.prezzo_km_extra || 0.20;
+                          const importoKmEccedenza = kmEccedenza * prezzoKmExtra;
+                          updateField('rientro_km_entrata', kmEntrata);
+                          updateField('rientro_km_percorsi', kmPercorsi);
+                          updateField('rientro_km_eccedenza', kmEccedenza);
+                          updateField('rientro_importo_km_eccedenza', importoKmEccedenza);
+                        }} className="h-5 text-xs w-20" />
+                        <span className="text-gray-600">Km percorsi:</span>
+                        <span className="font-semibold">{p.rientro_km_percorsi || 0}</span>
+                      </div>
+                      <p>Km inclusi totali: <strong>{p.km_inclusi_totali}</strong></p>
+                      <p>Km eccedenza: <strong>{p.rientro_km_eccedenza || 0}</strong> — Importo: <strong>€{(p.rientro_importo_km_eccedenza || 0).toFixed(2)}</strong></p>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600 w-32">Tacche carburante:</span>
+                        <Input type="number" min="0" max="8" value={p.rientro_tacche_carburante || ''} onChange={e => updateField('rientro_tacche_carburante', e.target.value)} className="h-5 text-xs w-12" />
+                        <span>/ 8</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p>Data/ora rientro effettivo: {p.rientro_data ? `${formatDateIT(p.rientro_data)} ${p.rientro_ora || ''}` : '_____________________'}</p>
+                      <p>Km entrata: {p.rientro_km_entrata || '_________'} Km percorsi: {p.rientro_km_percorsi || '_________'}</p>
+                      <p>Km inclusi totali: {p.km_inclusi_totali}</p>
+                      <p>Km eccedenza: {p.rientro_km_eccedenza || '_________'} Importo km eccedenza: €{p.rientro_importo_km_eccedenza?.toFixed(2) || '_________'}</p>
+                      <p>Tacche carburante entrata: {p.rientro_tacche_carburante || '_____'} / 8</p>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="p-3">
                 <div className="font-bold mb-2">ADDEBITI AL RIENTRO</div>
                 <table className="w-full text-xs">
                   <tbody>
-                    <tr><td>Danni veicolo:</td><td className="text-right">€ ___________</td></tr>
-                    <tr><td>Costo gestione danni:</td><td className="text-right">€ ___________</td></tr>
-                    <tr><td>Carburante mancante:</td><td className="text-right">€ ___________</td></tr>
-                    <tr><td>Pulizia straordinaria:</td><td className="text-right">€ ___________</td></tr>
-                    <tr><td>Altri addebiti:</td><td className="text-right">€ ___________</td></tr>
-                    <tr className="border-t border-black font-bold bg-yellow-100"><td className="py-1">Totale addebiti rientro:</td><td className="text-right">0,00 €</td></tr>
+                    {[
+                      { key: 'addebito_danni', label: 'Danni veicolo' },
+                      { key: 'addebito_gestione_danni', label: 'Costo gestione danni' },
+                      { key: 'addebito_carburante', label: 'Carburante mancante' },
+                      { key: 'addebito_pulizia', label: 'Pulizia straordinaria' },
+                      { key: 'addebito_altro', label: 'Altri addebiti' }
+                    ].map(({ key, label }) => (
+                      <tr key={key}>
+                        <td className="py-0.5">{label}:</td>
+                        <td className="text-right">
+                          {isEditing ? (
+                            <span className="inline-flex items-center">€<Input type="number" step="0.01" value={p[key] || ''} onChange={e => {
+                              const val = parseFloat(e.target.value) || 0;
+                              updateField(key, val);
+                              // Ricalcola totale addebiti
+                              const keys = ['addebito_danni', 'addebito_gestione_danni', 'addebito_carburante', 'addebito_pulizia', 'addebito_altro'];
+                              let tot = 0;
+                              keys.forEach(k => { tot += (k === key ? val : (parseFloat(p[k]) || 0)); });
+                              tot += (p.rientro_importo_km_eccedenza || 0);
+                              updateField('totale_addebiti_rientro', tot);
+                            }} className="h-5 text-xs w-20 text-right" /></span>
+                          ) : (
+                            <>€ {(p[key] || 0).toFixed(2)}</>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td className="py-0.5">Km eccedenza:</td>
+                      <td className="text-right">€ {(p.rientro_importo_km_eccedenza || 0).toFixed(2)}</td>
+                    </tr>
+                    <tr className="border-t border-black font-bold bg-yellow-100">
+                      <td className="py-1">Totale addebiti rientro:</td>
+                      <td className="text-right">{(p.totale_addebiti_rientro || 0).toFixed(2)} €</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>

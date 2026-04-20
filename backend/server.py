@@ -1560,7 +1560,16 @@ async def admin_update_prenotazione(prenotazione_id: str, data: dict, admin: dic
         "pagamento_contanti", "pagamento_carta", "pagamento_bonifico",
         "pagamento_altro", "pagamento_altro_desc",
         # Status
-        "status"
+        "status",
+        # Rientro
+        "rientro_data", "rientro_ora", "rientro_km_entrata", "rientro_km_percorsi",
+        "rientro_km_eccedenza", "rientro_importo_km_eccedenza", "rientro_tacche_carburante",
+        # Addebiti rientro
+        "addebito_danni", "addebito_gestione_danni", "addebito_carburante",
+        "addebito_pulizia", "addebito_altro", "totale_addebiti_rientro",
+        # Franchigie incluse/escluse
+        "franchigia_kasko", "franchigia_sinistro", "scoperto_furto",
+        "franchigia_kasko_inclusa", "franchigia_sinistro_inclusa"
     ]
     
     update_data = {k: v for k, v in data.items() if k in allowed_fields}

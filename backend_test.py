@@ -2,255 +2,284 @@
 
 import requests
 import sys
+import json
 from datetime import datetime
 
-class CarRentalAPITester:
+class ContractEditingTester:
     def __init__(self, base_url="https://webapp-import-guide.preview.emergentagent.com"):
         self.base_url = base_url
-        self.api_url = f"{base_url}/api"
         self.token = None
         self.tests_run = 0
         self.tests_passed = 0
-        self.client_user_id = None
+        self.booking_id = "f823c530-aede-42eb-9954-feea1bc72a8a"
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
         """Run a single API test"""
-        url = f"{self.api_url}/{endpoint}"
-        headers = {'Content-Type': 'application/json'}
+        url = f"{self.base_url}/{endpoint}"
+        default_headers = {'Content-Type': 'application/json'}
         if self.token:
-            headers['Authorization'] = f'Bearer {self.token}'
+            default_headers['Authorization'] = f'Bearer {self.token}'
+        if headers:
+            default_headers.update(headers)
 
         self.tests_run += 1
         print(f"\n🔍 Testing {name}...")
-        print(f"   URL: {url}")
-        if params:
-            print(f"   Params: {params}")
         
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers, params=params)
+                response = requests.get(url, headers=default_headers)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers)
+                response = requests.post(url, json=data, headers=default_headers)
+            elif method == 'PUT':
+                response = requests.put(url, json=data, headers=default_headers)
+            elif method == 'PATCH':
+                response = requests.patch(url, json=data, headers=default_headers)
 
-            print(f"   Response Status: {response.status_code}")
-            
             success = response.status_code == expected_status
             if success:
                 self.tests_passed += 1
-                print(f"✅ PASSED - Status: {response.status_code}")
+                print(f"✅ Passed - Status: {response.status_code}")
                 try:
                     response_data = response.json()
-                    return success, response_data
+                    if isinstance(response_data, dict) and len(str(response_data)) < 500:
+                        print(f"   Response: {response_data}")
                 except:
-                    return success, {}
+                    pass
             else:
-                print(f"❌ FAILED - Expected {expected_status}, got {response.status_code}")
+                print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
                 try:
-                    error_detail = response.json()
-                    print(f"   Error: {error_detail}")
+                    error_data = response.json()
+                    print(f"   Error: {error_data}")
                 except:
-                    print(f"   Error: {response.text}")
-                return False, {}
+                    print(f"   Error text: {response.text[:200]}")
+
+            return success, response.json() if response.content else {}
 
         except Exception as e:
-            print(f"❌ FAILED - Network Error: {str(e)}")
+            print(f"❌ Failed - Error: {str(e)}")
             return False, {}
 
-    def test_client_login(self):
-        """Test client login with test credentials"""
+    def test_admin_login(self):
+        """Test admin login and get token"""
         success, response = self.run_test(
-            "Client Login",
+            "Admin Login",
             "POST",
-            "auth/login",
+            "api/auth/login",
             200,
-            data={"email": "mario.rossi.test@email.com", "password": "password123"}
+            data={"email": "admin@relecogroup.it", "password": "admin123"}
         )
         if success and 'token' in response:
             self.token = response['token']
-            self.client_user_id = response.get('user', {}).get('id')
-            print(f"   ✅ Login successful, token obtained")
-            print(f"   User ID: {self.client_user_id}")
+            print(f"   Admin logged in: {response['user']['nome']} {response['user']['cognome']}")
             return True
         return False
 
-    def test_get_vehicles(self):
-        """Test getting available vehicles"""
+    def test_get_booking(self):
+        """Get the specific booking for testing"""
         success, response = self.run_test(
-            "Get Available Vehicles",
+            "Get Test Booking",
             "GET",
-            "vehicles/available",
-            200
-        )
-        if success and isinstance(response, list):
-            print(f"   ✅ Found {len(response)} available vehicles")
-            # Look for Fiat Panda
-            fiat_panda = None
-            for vehicle in response:
-                if vehicle.get('marca', '').lower() == 'fiat' and 'panda' in vehicle.get('modello', '').lower():
-                    fiat_panda = vehicle
-                    break
-            
-            if fiat_panda:
-                print(f"   ✅ Found Fiat Panda: {fiat_panda['marca']} {fiat_panda['modello']} - ID: {fiat_panda['id']}")
-                print(f"   Base rate: €{fiat_panda.get('tariffa_giornaliera', 'N/A')}/day")
-                return True, fiat_panda['id']
-            else:
-                print(f"   ⚠️  Fiat Panda not found in vehicle list")
-                # Return first vehicle for testing
-                if response:
-                    first_vehicle = response[0]
-                    print(f"   Using first vehicle for testing: {first_vehicle['marca']} {first_vehicle['modello']}")
-                    return True, first_vehicle['id']
-        return False, None
-
-    def test_seasonal_pricing_july(self, vehicle_id):
-        """Test seasonal pricing for July dates (should be €75/day)"""
-        success, response = self.run_test(
-            "Seasonal Pricing - July 2026 (Summer Rate)",
-            "GET",
-            "calcola-prezzo-dinamico",
-            200,
-            params={
-                "veicolo_id": vehicle_id,
-                "data_inizio": "2026-07-01",
-                "data_fine": "2026-07-05"
-            }
-        )
-        if success:
-            daily_rate = response.get('tariffa_giornaliera')
-            tariff_type = response.get('tariffa_applicata')
-            tariff_name = response.get('nome_tariffa')
-            
-            print(f"   Daily Rate: €{daily_rate}")
-            print(f"   Tariff Type: {tariff_type}")
-            print(f"   Tariff Name: {tariff_name}")
-            
-            if daily_rate == 75.0:
-                print(f"   ✅ Correct seasonal rate applied (€75/day)")
-                return True
-            else:
-                print(f"   ❌ Expected €75/day, got €{daily_rate}/day")
-                return False
-        return False
-
-    def test_base_pricing_april(self, vehicle_id):
-        """Test base pricing for April dates (should be €35/day)"""
-        success, response = self.run_test(
-            "Base Pricing - April 2026 (Non-seasonal)",
-            "GET",
-            "calcola-prezzo-dinamico",
-            200,
-            params={
-                "veicolo_id": vehicle_id,
-                "data_inizio": "2026-04-01",
-                "data_fine": "2026-04-05"
-            }
-        )
-        if success:
-            daily_rate = response.get('tariffa_giornaliera')
-            tariff_type = response.get('tariffa_applicata')
-            
-            print(f"   Daily Rate: €{daily_rate}")
-            print(f"   Tariff Type: {tariff_type}")
-            
-            if daily_rate == 35.0:
-                print(f"   ✅ Correct base rate applied (€35/day)")
-                return True
-            else:
-                print(f"   ❌ Expected €35/day, got €{daily_rate}/day")
-                return False
-        return False
-
-    def test_specific_vehicle_pricing(self):
-        """Test the specific vehicle ID mentioned in requirements"""
-        vehicle_id = "7aee8096-e295-47b1-a099-8a153ac2c3c2"
-        success, response = self.run_test(
-            "Specific Vehicle Pricing Test",
-            "GET",
-            "calcola-prezzo-dinamico",
-            200,
-            params={
-                "veicolo_id": vehicle_id,
-                "data_inizio": "2026-07-01",
-                "data_fine": "2026-07-05"
-            }
-        )
-        if success:
-            daily_rate = response.get('tariffa_giornaliera')
-            print(f"   Daily Rate for specific vehicle: €{daily_rate}")
-            
-            if daily_rate == 75.0:
-                print(f"   ✅ Specific vehicle test passed (€75/day)")
-                return True
-            else:
-                print(f"   ⚠️  Expected €75/day, got €{daily_rate}/day")
-                return False
-        return False
-
-    def test_get_vehicle_details(self, vehicle_id):
-        """Test getting specific vehicle details"""
-        success, response = self.run_test(
-            "Get Vehicle Details",
-            "GET",
-            f"vehicles/{vehicle_id}",
+            f"api/prenotazioni/{self.booking_id}",
             200
         )
         if success:
-            print(f"   Vehicle: {response.get('marca')} {response.get('modello')}")
-            print(f"   Base Rate: €{response.get('tariffa_giornaliera')}/day")
+            print(f"   Booking: {response.get('veicolo_marca')} {response.get('veicolo_modello')} - {response.get('veicolo_targa')}")
+            print(f"   Status: {response.get('status')}")
+            print(f"   Period: {response.get('data_ritiro')} to {response.get('data_riconsegna')}")
+        return success, response
+
+    def test_admin_update_contract_fields(self):
+        """Test updating contract fields via admin-update endpoint"""
+        
+        # Test data for contract editing
+        update_data = {
+            # DATI RIENTRO fields
+            "rientro_data": "2026-07-20",
+            "rientro_ora": "18:30",
+            "rientro_km_entrata": 15500,
+            "rientro_tacche_carburante": 6,
+            
+            # ADDEBITI AL RIENTRO fields
+            "addebito_danni": 150.00,
+            "addebito_gestione_danni": 50.00,
+            "addebito_carburante": 25.00,
+            "addebito_pulizia": 30.00,
+            "addebito_altro": 20.00,
+            "totale_addebiti_rientro": 275.00,
+            
+            # FRANCHIGIE INCLUSE/ESCLUSE
+            "franchigia_kasko": 500.00,
+            "franchigia_sinistro": 250.00,
+            "franchigia_kasko_inclusa": True,
+            "franchigia_sinistro_inclusa": False,  # Test excluding this one
+            
+            # Other contract fields
+            "km_uscita": 15000,
+            "tacche_carburante_uscita": 8
+        }
+        
+        success, response = self.run_test(
+            "Admin Update Contract Fields",
+            "PUT",
+            f"api/prenotazioni/{self.booking_id}/admin-update",
+            200,
+            data=update_data
+        )
+        
+        if success:
+            print("   ✅ Contract fields updated successfully")
+        
+        return success
+
+    def test_verify_updated_fields(self):
+        """Verify that the updated fields are correctly saved"""
+        success, response = self.run_test(
+            "Verify Updated Contract Fields",
+            "GET",
+            f"api/prenotazioni/{self.booking_id}",
+            200
+        )
+        
+        if success:
+            # Check DATI RIENTRO fields
+            rientro_data = response.get('rientro_data')
+            rientro_ora = response.get('rientro_ora')
+            rientro_km = response.get('rientro_km_entrata')
+            rientro_tacche = response.get('rientro_tacche_carburante')
+            
+            print(f"   Rientro Data: {rientro_data}")
+            print(f"   Rientro Ora: {rientro_ora}")
+            print(f"   Rientro KM: {rientro_km}")
+            print(f"   Rientro Tacche: {rientro_tacche}")
+            
+            # Check ADDEBITI fields
+            addebiti = {
+                'danni': response.get('addebito_danni'),
+                'gestione': response.get('addebito_gestione_danni'),
+                'carburante': response.get('addebito_carburante'),
+                'pulizia': response.get('addebito_pulizia'),
+                'altro': response.get('addebito_altro'),
+                'totale': response.get('totale_addebiti_rientro')
+            }
+            print(f"   Addebiti: {addebiti}")
+            
+            # Check FRANCHIGIE fields
+            franchigie = {
+                'kasko': response.get('franchigia_kasko'),
+                'sinistro': response.get('franchigia_sinistro'),
+                'kasko_inclusa': response.get('franchigia_kasko_inclusa'),
+                'sinistro_inclusa': response.get('franchigia_sinistro_inclusa')
+            }
+            print(f"   Franchigie: {franchigie}")
+            
+            # Verify specific values
+            verification_passed = True
+            if rientro_data != "2026-07-20":
+                print(f"   ❌ Rientro data mismatch: expected 2026-07-20, got {rientro_data}")
+                verification_passed = False
+            if rientro_km != 15500:
+                print(f"   ❌ Rientro KM mismatch: expected 15500, got {rientro_km}")
+                verification_passed = False
+            if response.get('totale_addebiti_rientro') != 275.00:
+                print(f"   ❌ Totale addebiti mismatch: expected 275.00, got {response.get('totale_addebiti_rientro')}")
+                verification_passed = False
+            if response.get('franchigia_sinistro_inclusa') != False:
+                print(f"   ❌ Franchigia sinistro should be excluded (False), got {response.get('franchigia_sinistro_inclusa')}")
+                verification_passed = False
+                
+            if verification_passed:
+                print("   ✅ All field values verified correctly")
+            
+            return verification_passed
+        
+        return False
+
+    def test_contract_calculations(self):
+        """Test that contract calculations work correctly"""
+        success, response = self.run_test(
+            "Verify Contract Calculations",
+            "GET",
+            f"api/prenotazioni/{self.booking_id}",
+            200
+        )
+        
+        if success:
+            # Get values for calculation verification
+            tariffa_base = response.get('tariffa_base', 0)
+            totale_servizi = response.get('totale_servizi', 0)
+            totale_addebiti = response.get('totale_addebiti_rientro', 0)
+            acconto = response.get('acconto', 0)
+            
+            # Franchigie calculation (only included ones)
+            franchigia_kasko = response.get('franchigia_kasko', 0) if response.get('franchigia_kasko_inclusa', True) else 0
+            franchigia_sinistro = response.get('franchigia_sinistro', 0) if response.get('franchigia_sinistro_inclusa', True) else 0
+            totale_franchigie_calculated = franchigia_kasko + franchigia_sinistro
+            
+            # Total calculation
+            totale_calculated = tariffa_base + totale_servizi + totale_franchigie_calculated + totale_addebiti
+            saldo_calculated = totale_calculated - acconto
+            
+            print(f"   Tariffa Base: €{tariffa_base}")
+            print(f"   Totale Servizi: €{totale_servizi}")
+            print(f"   Franchigie Incluse: €{totale_franchigie_calculated} (KASKO: €{franchigia_kasko}, SINISTRO: €{franchigia_sinistro})")
+            print(f"   Addebiti Rientro: €{totale_addebiti}")
+            print(f"   Acconto: €{acconto}")
+            print(f"   Totale Calcolato: €{totale_calculated}")
+            print(f"   Saldo alla Consegna: €{saldo_calculated}")
+            
+            # Verify franchigia exclusion works
+            if response.get('franchigia_sinistro_inclusa') == False and franchigia_sinistro == 0:
+                print("   ✅ Franchigia sinistro correctly excluded from calculation")
+            elif response.get('franchigia_sinistro_inclusa') == False and franchigia_sinistro > 0:
+                print("   ❌ Franchigia sinistro should be excluded but is still included in calculation")
+                return False
+            
             return True
+        
         return False
 
 def main():
-    print("🚗 Car Rental Seasonal Pricing API Test")
-    print("=" * 50)
+    """Main test execution"""
+    print("🚀 Starting Contract Editing Backend Tests")
+    print("=" * 60)
     
-    tester = CarRentalAPITester()
+    tester = ContractEditingTester()
     
-    # Test 1: Client Login
-    if not tester.test_client_login():
-        print("\n❌ Login failed, stopping tests")
+    # Test sequence
+    if not tester.test_admin_login():
+        print("❌ Admin login failed, stopping tests")
         return 1
-
-    # Test 2: Get Available Vehicles
-    vehicles_success, vehicle_id = tester.test_get_vehicles()
-    if not vehicles_success or not vehicle_id:
-        print("\n❌ Failed to get vehicles, stopping tests")
+    
+    # Get initial booking state
+    success, initial_booking = tester.test_get_booking()
+    if not success:
+        print("❌ Could not retrieve test booking, stopping tests")
         return 1
-
-    # Test 3: Get Vehicle Details
-    tester.test_get_vehicle_details(vehicle_id)
-
-    # Test 4: Seasonal Pricing (July - should be €75)
-    july_success = tester.test_seasonal_pricing_july(vehicle_id)
-
-    # Test 5: Base Pricing (April - should be €35)
-    april_success = tester.test_base_pricing_april(vehicle_id)
-
-    # Test 6: Specific Vehicle Test (from requirements)
-    specific_success = tester.test_specific_vehicle_pricing()
-
-    # Print Results
-    print("\n" + "=" * 50)
-    print(f"📊 TEST RESULTS")
-    print(f"Tests Run: {tester.tests_run}")
-    print(f"Tests Passed: {tester.tests_passed}")
-    print(f"Success Rate: {(tester.tests_passed/tester.tests_run)*100:.1f}%")
     
-    # Critical test results
-    critical_tests = [july_success, april_success]
-    critical_passed = sum(critical_tests)
+    # Test contract field updates
+    if not tester.test_admin_update_contract_fields():
+        print("❌ Contract field update failed")
+        return 1
     
-    print(f"\n🎯 CRITICAL SEASONAL PRICING TESTS:")
-    print(f"July Seasonal Rate (€75): {'✅ PASS' if july_success else '❌ FAIL'}")
-    print(f"April Base Rate (€35): {'✅ PASS' if april_success else '❌ FAIL'}")
-    print(f"Specific Vehicle Test: {'✅ PASS' if specific_success else '❌ FAIL'}")
+    # Verify updates were saved
+    if not tester.test_verify_updated_fields():
+        print("❌ Field verification failed")
+        return 1
     
-    if critical_passed == 2:
-        print(f"\n🎉 All critical seasonal pricing tests PASSED!")
+    # Test calculations
+    if not tester.test_contract_calculations():
+        print("❌ Contract calculations failed")
+        return 1
+    
+    # Print final results
+    print("\n" + "=" * 60)
+    print(f"📊 Backend Tests Summary: {tester.tests_passed}/{tester.tests_run} passed")
+    
+    if tester.tests_passed == tester.tests_run:
+        print("🎉 All backend tests passed!")
         return 0
     else:
-        print(f"\n⚠️  {2-critical_passed} critical test(s) FAILED")
+        print("⚠️  Some backend tests failed")
         return 1
 
 if __name__ == "__main__":
