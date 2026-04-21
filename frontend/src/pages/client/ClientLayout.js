@@ -4,9 +4,16 @@ import { useAuth, api } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { 
-  Car, LayoutDashboard, CalendarDays, FileText, User, LogOut, Menu, X, ChevronRight, Edit
+  Car, LayoutDashboard, CalendarDays, FileText, User, LogOut, Menu, X, ChevronRight, Edit,
+  Save, CreditCard
 } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+
+const API = process.env.REACT_APP_BACKEND_URL + '/api';
 
 // Client Sidebar
 export const ClientSidebar = ({ isOpen, onClose }) => {
@@ -665,76 +672,151 @@ export function ClientContrattiPage() {
 // Client Profile Page
 export function ClientProfiloPage() {
   const { user, token } = useAuth();
-  
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await axios.get(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+        setProfile(res.data);
+      } catch (e) {
+        console.error('Error loading profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (token) fetchProfile();
+  }, [token]);
+
+  const updateField = (field, value) => setProfile(prev => ({ ...prev, [field]: value }));
+  const updatePatenteField = (field, value) => setProfile(prev => ({ ...prev, patente: { ...(prev.patente || {}), [field]: value } }));
+  const updateCartaField = (field, value) => setProfile(prev => ({ ...prev, carta_credito: { ...(prev.carta_credito || {}), [field]: value } }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        nome: profile.nome, cognome: profile.cognome, data_nascita: profile.data_nascita,
+        luogo_nascita: profile.luogo_nascita, codice_fiscale: profile.codice_fiscale,
+        indirizzo: profile.indirizzo, comune: profile.comune, provincia: profile.provincia,
+        cap: profile.cap, stato: profile.stato, cellulare: profile.cellulare,
+        patente: profile.patente, carta_credito: profile.carta_credito
+      };
+      const res = await axios.put(`${API}/auth/profile`, payload, { headers: { Authorization: `Bearer ${token}` } });
+      setProfile(res.data);
+      toast.success('Profilo salvato con successo!');
+    } catch (e) {
+      toast.error('Errore nel salvataggio');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading || !profile) {
+    return <div className="flex items-center justify-center min-h-[300px]"><div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>;
+  }
+
+  const pat = profile.patente || {};
+  const carta = profile.carta_credito || {};
+  const PROVINCES = ['AG','AL','AN','AO','AR','AP','AT','AV','BA','BT','BL','BN','BG','BI','BO','BZ','BS','BR','CA','CL','CB','CI','CE','CT','CZ','CH','CO','CS','CR','KR','CN','EN','FM','FE','FI','FG','FC','FR','GE','GO','GR','IM','IS','SP','AQ','LT','LE','LC','LI','LO','LU','MC','MN','MS','MT','ME','MI','MO','MB','NA','NO','NU','OG','OT','OR','PD','PA','PR','PV','PG','PU','PE','PC','PI','PT','PN','PZ','PO','RG','RA','RC','RE','RI','RN','RM','RO','SA','VS','SS','SV','SI','SR','SO','TA','TE','TR','TO','TP','TN','TV','TS','UD','VA','VE','VB','VC','VR','VV','VI','VT'];
+  const LICENSE_CATS = ['AM','A1','A2','A','B','B1','BE','C','C1','CE','D','D1','DE'];
+
   return (
-    <div className="space-y-6 max-w-2xl">
-      <h2 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-        Il mio Profilo
-      </h2>
-      
+    <div className="space-y-4 max-w-3xl">
+      <div>
+        <h2 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Il mio Profilo</h2>
+        <p className="text-sm text-slate-500">Modifica le tue informazioni e clicca Salva</p>
+      </div>
+
+      {/* Dati Anagrafici */}
       <Card className="border-slate-200">
-        <CardHeader>
-          <CardTitle className="text-base">Dati Anagrafici</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-slate-500">Nome</p>
-              <p className="font-medium">{user?.nome} {user?.cognome}</p>
+        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><User className="w-4 h-4 text-blue-600" /> Dati Anagrafici</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1"><Label>Nome</Label><Input data-testid="profile-nome" value={profile.nome || ''} onChange={e => updateField('nome', e.target.value)} /></div>
+            <div className="space-y-1"><Label>Cognome</Label><Input data-testid="profile-cognome" value={profile.cognome || ''} onChange={e => updateField('cognome', e.target.value)} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1"><Label>Data Nascita</Label><Input type="date" value={profile.data_nascita || ''} onChange={e => updateField('data_nascita', e.target.value)} /></div>
+            <div className="space-y-1"><Label>Luogo Nascita</Label><Input value={profile.luogo_nascita || ''} onChange={e => updateField('luogo_nascita', e.target.value)} /></div>
+          </div>
+          <div className="space-y-1"><Label>Codice Fiscale</Label><Input value={profile.codice_fiscale || ''} onChange={e => updateField('codice_fiscale', e.target.value.toUpperCase())} maxLength={16} /></div>
+          <div className="space-y-1">
+            <Label>Email</Label>
+            <Input value={profile.email || ''} disabled className="bg-slate-50" />
+            <p className="text-xs text-slate-400">L'email non puo' essere modificata</p>
+          </div>
+          <div className="space-y-1"><Label>Cellulare</Label><Input value={profile.cellulare || ''} onChange={e => updateField('cellulare', e.target.value)} placeholder="+39 333 1234567" /></div>
+          <div className="space-y-1"><Label>Indirizzo</Label><Input value={profile.indirizzo || ''} onChange={e => updateField('indirizzo', e.target.value)} /></div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1"><Label>Comune</Label><Input value={profile.comune || ''} onChange={e => updateField('comune', e.target.value)} /></div>
+            <div className="space-y-1">
+              <Label>Provincia</Label>
+              <Select value={profile.provincia || ''} onValueChange={v => updateField('provincia', v)}>
+                <SelectTrigger><SelectValue placeholder="Prov." /></SelectTrigger>
+                <SelectContent>{PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
-            <div>
-              <p className="text-slate-500">Codice Fiscale</p>
-              <p className="font-medium">{user?.codice_fiscale}</p>
-            </div>
-            <div>
-              <p className="text-slate-500">Data di Nascita</p>
-              <p className="font-medium">{user?.data_nascita}</p>
-            </div>
-            <div>
-              <p className="text-slate-500">Luogo di Nascita</p>
-              <p className="font-medium">{user?.luogo_nascita}</p>
-            </div>
-            <div>
-              <p className="text-slate-500">Email</p>
-              <p className="font-medium">{user?.email}</p>
-            </div>
-            <div>
-              <p className="text-slate-500">Cellulare</p>
-              <p className="font-medium">{user?.cellulare}</p>
-            </div>
-            <div className="col-span-2">
-              <p className="text-slate-500">Indirizzo</p>
-              <p className="font-medium">{user?.indirizzo}, {user?.cap} {user?.comune} ({user?.provincia})</p>
-            </div>
+            <div className="space-y-1"><Label>CAP</Label><Input value={profile.cap || ''} onChange={e => updateField('cap', e.target.value)} maxLength={5} /></div>
           </div>
         </CardContent>
       </Card>
-      
+
+      {/* Patente */}
       <Card className="border-slate-200">
-        <CardHeader>
-          <CardTitle className="text-base">Patente di Guida</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-slate-500">Intestatario</p>
-              <p className="font-medium">{user?.patente?.intestatario_nome} {user?.patente?.intestatario_cognome}</p>
+        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><FileText className="w-4 h-4 text-blue-600" /> Patente di Guida</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1"><Label>Numero Patente</Label><Input value={pat.numero || ''} onChange={e => updatePatenteField('numero', e.target.value.toUpperCase())} /></div>
+            <div className="space-y-1">
+              <Label>Categoria</Label>
+              <Select value={pat.categoria || ''} onValueChange={v => updatePatenteField('categoria', v)}>
+                <SelectTrigger><SelectValue placeholder="Cat." /></SelectTrigger>
+                <SelectContent>{LICENSE_CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
-            <div>
-              <p className="text-slate-500">Numero</p>
-              <p className="font-medium">{user?.patente?.numero}</p>
-            </div>
-            <div>
-              <p className="text-slate-500">Categoria</p>
-              <p className="font-medium">{user?.patente?.categoria}</p>
-            </div>
-            <div>
-              <p className="text-slate-500">Scadenza</p>
-              <p className="font-medium">{user?.patente?.data_scadenza}</p>
-            </div>
+          </div>
+          <div className="space-y-1"><Label>Rilasciata da</Label><Input value={pat.rilasciata_da || ''} onChange={e => updatePatenteField('rilasciata_da', e.target.value)} placeholder="Es: MCTC Roma" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1"><Label>Data Rilascio</Label><Input type="date" value={pat.data_rilascio || ''} onChange={e => updatePatenteField('data_rilascio', e.target.value)} /></div>
+            <div className="space-y-1"><Label>Data Scadenza</Label><Input type="date" value={pat.data_scadenza || ''} onChange={e => updatePatenteField('data_scadenza', e.target.value)} /></div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Carta di Credito */}
+      <Card className="border-slate-200">
+        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><CreditCard className="w-4 h-4 text-blue-600" /> Carta di Credito <span className="text-xs font-normal text-slate-400">(Opzionale)</span></CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Circuito</Label>
+              <Select value={carta.circuito || 'none'} onValueChange={v => updateCartaField('circuito', v === 'none' ? '' : v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nessuno</SelectItem>
+                  <SelectItem value="Visa">Visa</SelectItem>
+                  <SelectItem value="Mastercard">Mastercard</SelectItem>
+                  <SelectItem value="American Express">American Express</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1"><Label>Intestatario</Label><Input value={carta.intestatario || ''} onChange={e => updateCartaField('intestatario', e.target.value)} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1"><Label>Ultime 4 cifre</Label><Input value={carta.numero || ''} onChange={e => updateCartaField('numero', e.target.value.replace(/\D/g,'').slice(0,4))} maxLength={4} /></div>
+            <div className="space-y-1"><Label>Mese</Label><Input value={carta.scadenza_mese || ''} onChange={e => updateCartaField('scadenza_mese', e.target.value)} maxLength={2} placeholder="MM" /></div>
+            <div className="space-y-1"><Label>Anno</Label><Input value={carta.scadenza_anno || ''} onChange={e => updateCartaField('scadenza_anno', e.target.value)} maxLength={2} placeholder="AA" /></div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Salva */}
+      <Button onClick={handleSave} disabled={saving} className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-base font-semibold" data-testid="save-profile-btn">
+        {saving ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Salvataggio...</span> : <><Save className="w-4 h-4 mr-2" />Salva Modifiche</>}
+      </Button>
     </div>
   );
 }

@@ -22,6 +22,11 @@ export default function AdminClientiPage() {
   const [editPasswordDialog, setEditPasswordDialog] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   
+  // Modifica profilo cliente
+  const [editClientDialog, setEditClientDialog] = useState(null);
+  const [editClientData, setEditClientData] = useState(null);
+  const [savingEditClient, setSavingEditClient] = useState(false);
+  
   // Nuovo cliente
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [savingCliente, setSavingCliente] = useState(false);
@@ -103,6 +108,42 @@ export default function AdminClientiPage() {
       fetchClienti();
     } catch (error) {
       toast.error('Errore nel salvataggio');
+    }
+  };
+
+  const openEditClientDialog = (cliente) => {
+    setEditClientData({ ...cliente, patente: { ...(cliente.patente || {}) }, carta_credito: { ...(cliente.carta_credito || {}) } });
+    setEditClientDialog(cliente);
+  };
+
+  const handleSaveEditClient = async () => {
+    if (!editClientData) return;
+    setSavingEditClient(true);
+    try {
+      const payload = {
+        nome: editClientData.nome,
+        cognome: editClientData.cognome,
+        data_nascita: editClientData.data_nascita,
+        luogo_nascita: editClientData.luogo_nascita,
+        codice_fiscale: editClientData.codice_fiscale,
+        indirizzo: editClientData.indirizzo,
+        comune: editClientData.comune,
+        provincia: editClientData.provincia,
+        cap: editClientData.cap,
+        stato: editClientData.stato,
+        cellulare: editClientData.cellulare,
+        patente: editClientData.patente,
+        carta_credito: editClientData.carta_credito
+      };
+      await api.put(`/clienti/${editClientData.id}`, payload, token);
+      toast.success('Profilo cliente aggiornato!');
+      setEditClientDialog(null);
+      setEditClientData(null);
+      fetchClienti();
+    } catch (error) {
+      toast.error('Errore nel salvataggio');
+    } finally {
+      setSavingEditClient(false);
     }
   };
 
@@ -325,6 +366,14 @@ export default function AdminClientiPage() {
                         </div>
                       </TableCell>
                       <TableCell className="space-x-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => openEditClientDialog(c)}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          <Edit className="w-4 h-4 mr-1" /> Profilo
+                        </Button>
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -696,6 +745,143 @@ export default function AdminClientiPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Modifica Profilo Cliente */}
+      <Dialog open={!!editClientDialog} onOpenChange={() => { setEditClientDialog(null); setEditClientData(null); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-5 h-5 text-blue-600" />
+              Modifica Profilo: {editClientData?.nome} {editClientData?.cognome}
+            </DialogTitle>
+          </DialogHeader>
+          {editClientData && (
+            <div className="space-y-4 mt-2">
+              {/* Dati Anagrafici */}
+              <div className="font-semibold text-sm text-slate-700 border-b pb-1">Dati Anagrafici</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Nome</Label>
+                  <Input value={editClientData.nome || ''} onChange={e => setEditClientData({...editClientData, nome: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Cognome</Label>
+                  <Input value={editClientData.cognome || ''} onChange={e => setEditClientData({...editClientData, cognome: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Data Nascita</Label>
+                  <Input type="date" value={editClientData.data_nascita || ''} onChange={e => setEditClientData({...editClientData, data_nascita: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Luogo Nascita</Label>
+                  <Input value={editClientData.luogo_nascita || ''} onChange={e => setEditClientData({...editClientData, luogo_nascita: e.target.value})} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Codice Fiscale</Label>
+                <Input value={editClientData.codice_fiscale || ''} onChange={e => setEditClientData({...editClientData, codice_fiscale: e.target.value.toUpperCase()})} maxLength={16} />
+              </div>
+              <div className="space-y-1">
+                <Label>Cellulare</Label>
+                <Input value={editClientData.cellulare || ''} onChange={e => setEditClientData({...editClientData, cellulare: e.target.value})} />
+              </div>
+              <div className="space-y-1">
+                <Label>Indirizzo</Label>
+                <Input value={editClientData.indirizzo || ''} onChange={e => setEditClientData({...editClientData, indirizzo: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label>Comune</Label>
+                  <Input value={editClientData.comune || ''} onChange={e => setEditClientData({...editClientData, comune: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Provincia</Label>
+                  <Input value={editClientData.provincia || ''} onChange={e => setEditClientData({...editClientData, provincia: e.target.value.toUpperCase()})} maxLength={2} />
+                </div>
+                <div className="space-y-1">
+                  <Label>CAP</Label>
+                  <Input value={editClientData.cap || ''} onChange={e => setEditClientData({...editClientData, cap: e.target.value})} maxLength={5} />
+                </div>
+              </div>
+
+              {/* Patente */}
+              <div className="font-semibold text-sm text-slate-700 border-b pb-1 mt-2">Patente di Guida</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Numero Patente</Label>
+                  <Input value={editClientData.patente?.numero || ''} onChange={e => setEditClientData({...editClientData, patente: {...editClientData.patente, numero: e.target.value.toUpperCase()}})} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Categoria</Label>
+                  <Input value={editClientData.patente?.categoria || ''} onChange={e => setEditClientData({...editClientData, patente: {...editClientData.patente, categoria: e.target.value.toUpperCase()}})} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Rilasciata da</Label>
+                <Input value={editClientData.patente?.rilasciata_da || ''} onChange={e => setEditClientData({...editClientData, patente: {...editClientData.patente, rilasciata_da: e.target.value}})} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Data Rilascio</Label>
+                  <Input type="date" value={editClientData.patente?.data_rilascio || ''} onChange={e => setEditClientData({...editClientData, patente: {...editClientData.patente, data_rilascio: e.target.value}})} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Data Scadenza</Label>
+                  <Input type="date" value={editClientData.patente?.data_scadenza || ''} onChange={e => setEditClientData({...editClientData, patente: {...editClientData.patente, data_scadenza: e.target.value}})} />
+                </div>
+              </div>
+
+              {/* Carta di Credito */}
+              <div className="font-semibold text-sm text-slate-700 border-b pb-1 mt-2">Carta di Credito</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Circuito</Label>
+                  <Select value={editClientData.carta_credito?.circuito || 'none'} onValueChange={v => setEditClientData({...editClientData, carta_credito: {...editClientData.carta_credito, circuito: v === 'none' ? '' : v}})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nessuno</SelectItem>
+                      <SelectItem value="Visa">Visa</SelectItem>
+                      <SelectItem value="Mastercard">Mastercard</SelectItem>
+                      <SelectItem value="American Express">American Express</SelectItem>
+                      <SelectItem value="Altro">Altro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Intestatario</Label>
+                  <Input value={editClientData.carta_credito?.intestatario || ''} onChange={e => setEditClientData({...editClientData, carta_credito: {...editClientData.carta_credito, intestatario: e.target.value}})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label>Ultime 4 cifre</Label>
+                  <Input value={editClientData.carta_credito?.numero || ''} onChange={e => setEditClientData({...editClientData, carta_credito: {...editClientData.carta_credito, numero: e.target.value.replace(/\D/g,'').slice(0,4)}})} maxLength={4} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Mese Scad.</Label>
+                  <Input value={editClientData.carta_credito?.scadenza_mese || ''} onChange={e => setEditClientData({...editClientData, carta_credito: {...editClientData.carta_credito, scadenza_mese: e.target.value}})} maxLength={2} placeholder="MM" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Anno Scad.</Label>
+                  <Input value={editClientData.carta_credito?.scadenza_anno || ''} onChange={e => setEditClientData({...editClientData, carta_credito: {...editClientData.carta_credito, scadenza_anno: e.target.value}})} maxLength={2} placeholder="AA" />
+                </div>
+              </div>
+
+              {/* Bottoni */}
+              <div className="flex justify-end gap-3 pt-3 border-t">
+                <Button variant="outline" onClick={() => { setEditClientDialog(null); setEditClientData(null); }}>
+                  Annulla
+                </Button>
+                <Button onClick={handleSaveEditClient} disabled={savingEditClient} className="bg-blue-600 hover:bg-blue-700">
+                  {savingEditClient ? 'Salvataggio...' : 'Salva Modifiche'}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

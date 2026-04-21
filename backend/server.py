@@ -692,6 +692,22 @@ async def login(credentials: UserLogin):
 async def get_me(user: dict = Depends(get_current_user)):
     return user
 
+@api_router.put("/auth/profile")
+async def update_my_profile(data: dict, user: dict = Depends(get_current_user)):
+    """Client can update their own profile"""
+    allowed_fields = [
+        "nome", "cognome", "data_nascita", "luogo_nascita", "codice_fiscale",
+        "indirizzo", "comune", "provincia", "cap", "stato", "cellulare",
+        "patente", "carta_credito"
+    ]
+    update_data = {k: v for k, v in data.items() if k in allowed_fields}
+    
+    if update_data:
+        await db.users.update_one({"id": user["id"]}, {"$set": update_data})
+    
+    updated = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 0})
+    return updated
+
 # ========== AGENCY DATA ==========
 
 @api_router.get("/agency")
