@@ -64,6 +64,85 @@ AGENCY_DATA = {
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
+# Brevo SMTP Configuration
+BREVO_SMTP_SERVER = os.environ.get('BREVO_SMTP_SERVER', '')
+BREVO_SMTP_PORT = int(os.environ.get('BREVO_SMTP_PORT', '587'))
+BREVO_SMTP_LOGIN = os.environ.get('BREVO_SMTP_LOGIN', '')
+BREVO_SMTP_KEY = os.environ.get('BREVO_SMTP_KEY', '')
+BREVO_SENDER_EMAIL = os.environ.get('BREVO_SENDER_EMAIL', 'relecogroup@libero.it')
+BREVO_SENDER_NAME = os.environ.get('BREVO_SENDER_NAME', 'Soverato Rental')
+BREVO_CONFIGURED = bool(BREVO_SMTP_SERVER and BREVO_SMTP_LOGIN and BREVO_SMTP_KEY)
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def send_brevo_email(to_email: str, to_name: str, subject: str, html_content: str):
+    """Send email via Brevo SMTP"""
+    if not BREVO_CONFIGURED:
+        logger.warning("Brevo not configured - email not sent")
+        return False
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f'{BREVO_SENDER_NAME} <{BREVO_SENDER_EMAIL}>'
+        msg['To'] = f'{to_name} <{to_email}>'
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        server = smtplib.SMTP(BREVO_SMTP_SERVER, BREVO_SMTP_PORT, timeout=10)
+        server.starttls()
+        server.login(BREVO_SMTP_LOGIN, BREVO_SMTP_KEY)
+        server.sendmail(BREVO_SENDER_EMAIL, [to_email], msg.as_string())
+        server.quit()
+        logger.info(f"Brevo email sent to {to_email}: {subject}")
+        return True
+    except Exception as e:
+        logger.error(f"Brevo email error: {e}")
+        return False
+
+def build_return_reminder_html(prenotazione: dict) -> str:
+    """Build HTML email for vehicle return reminder (5h before)"""
+    return f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; padding: 25px; text-align: center; border-radius: 12px 12px 0 0;">
+            <h1 style="margin: 0; font-size: 24px;">SOVERATO RENTAL</h1>
+            <p style="margin: 5px 0 0 0; font-size: 13px; opacity: 0.9;">RE.LE.CO. GROUP S.R.L.</p>
+        </div>
+        <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 20px; border-radius: 0 0 12px 12px;">
+            <h2 style="color: #856404; margin-top: 0;">Promemoria Riconsegna Veicolo</h2>
+            <p style="color: #664d03;">Gentile <strong>{prenotazione.get('cliente_nome', 'Cliente')}</strong>,</p>
+            <p style="color: #664d03;">Le ricordiamo che la riconsegna del veicolo noleggiato e' prevista tra circa <strong>5 ore</strong>.</p>
+            
+            <div style="background: white; border-radius: 8px; padding: 15px; margin: 15px 0; border: 1px solid #e0e0e0;">
+                <table style="width: 100%; font-size: 14px; color: #333;">
+                    <tr><td style="padding: 5px 0; color: #666;">Veicolo:</td><td style="padding: 5px 0;"><strong>{prenotazione.get('veicolo_marca', '')} {prenotazione.get('veicolo_modello', '')}</strong></td></tr>
+                    <tr><td style="padding: 5px 0; color: #666;">Targa:</td><td style="padding: 5px 0;"><strong>{prenotazione.get('veicolo_targa', '')}</strong></td></tr>
+                    <tr><td style="padding: 5px 0; color: #666;">Data riconsegna:</td><td style="padding: 5px 0;"><strong>{prenotazione.get('data_riconsegna', '')} ore {prenotazione.get('ora_riconsegna', '18:00')}</strong></td></tr>
+                    <tr><td style="padding: 5px 0; color: #666;">Luogo:</td><td style="padding: 5px 0;"><strong>{prenotazione.get('luogo_riconsegna', 'Sede Principale')}</strong></td></tr>
+                </table>
+            </div>
+            
+            <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin: 15px 0; font-size: 13px; color: #555;">
+                <strong>Cosa portare:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                    <li>Chiavi del veicolo</li>
+                    <li>Documento d'identita'</li>
+                    <li>Veicolo con stesso livello carburante del ritiro</li>
+                </ul>
+            </div>
+            
+            <p style="color: #664d03; font-size: 13px;">In caso di ritardo, si prega di contattarci al <strong>334 237 0420</strong>.</p>
+        </div>
+        <div style="text-align: center; padding: 15px; font-size: 11px; color: #999;">
+            <p>Soverato Rental - RE.LE.CO. GROUP S.R.L.</p>
+            <p>Corso Umberto, 220 - 88068 Soverato (CZ)</p>
+            <p>Tel: 334 237 0420 | Email: relecogroup@libero.it</p>
+        </div>
+    </body>
+    </html>
+    """
+
 async def send_booking_confirmation_email(cliente_email: str, cliente_nome: str, prenotazione: dict):
     """Send booking confirmation email when approved"""
     
@@ -188,6 +267,91 @@ if RESEND_AVAILABLE and RESEND_API_KEY:
     logger.info("Resend email service configured")
 else:
     logger.warning("Resend not configured - emails will be logged only")
+
+# Initialize Brevo email service
+if BREVO_CONFIGURED:
+    logger.info(f"Brevo SMTP configured: {BREVO_SMTP_SERVER}:{BREVO_SMTP_PORT}")
+else:
+    logger.warning("Brevo SMTP not configured")
+
+# ========== BACKGROUND TASK: RETURN REMINDER (5h before) ==========
+
+async def check_return_reminders():
+    """Check for bookings with return in ~5 hours and send reminder email"""
+    while True:
+        try:
+            now = datetime.now(timezone.utc)
+            # Target: returns happening in 4.5 to 5.5 hours from now (in UTC)
+            target_min = now + timedelta(hours=4, minutes=30)
+            target_max = now + timedelta(hours=5, minutes=30)
+            
+            # Make naive for comparison with parsed dates
+            target_min_naive = target_min.replace(tzinfo=None)
+            target_max_naive = target_max.replace(tzinfo=None)
+            
+            # Get all active bookings (approvata, contratto_generato, consegnato)
+            active_statuses = ["approvata", "contratto_generato", "consegnato"]
+            bookings = await db.prenotazioni.find(
+                {"status": {"$in": active_statuses}},
+                {"_id": 0}
+            ).to_list(500)
+            
+            for booking in bookings:
+                try:
+                    # Parse return datetime (assume Europe/Rome timezone, +2h from UTC in summer)
+                    data_ric = booking.get("data_riconsegna", "")
+                    ora_ric = booking.get("ora_riconsegna", "18:00")
+                    if not data_ric:
+                        continue
+                    
+                    return_dt = datetime.strptime(f"{data_ric} {ora_ric}", "%Y-%m-%d %H:%M")
+                    # Approximate: treat as UTC+2 (Italy)
+                    return_dt_utc = return_dt - timedelta(hours=2)
+                    
+                    # Check if return is in the 5h window
+                    if target_min_naive <= return_dt_utc <= target_max_naive:
+                        # Check if reminder already sent
+                        reminder_key = f"reminder_5h_{booking['id']}"
+                        already_sent = await db.email_log.find_one({"key": reminder_key})
+                        
+                        if not already_sent:
+                            email = booking.get("cliente_email", "")
+                            nome = booking.get("cliente_nome", "Cliente")
+                            
+                            if email and BREVO_CONFIGURED:
+                                html = build_return_reminder_html(booking)
+                                subject = f"Promemoria: Riconsegna {booking.get('veicolo_marca', '')} {booking.get('veicolo_modello', '')} oggi alle {ora_ric}"
+                                
+                                success = send_brevo_email(email, nome, subject, html)
+                                
+                                # Log the reminder (avoid duplicates)
+                                await db.email_log.insert_one({
+                                    "key": reminder_key,
+                                    "booking_id": booking["id"],
+                                    "email": email,
+                                    "type": "return_reminder_5h",
+                                    "sent": success,
+                                    "sent_at": datetime.now(timezone.utc).isoformat()
+                                })
+                                
+                                if success:
+                                    logger.info(f"Return reminder sent to {email} for booking {booking['id']}")
+                            else:
+                                logger.info(f"Return reminder skipped for {booking['id']}: no email or Brevo not configured")
+                except Exception as e:
+                    logger.error(f"Error processing reminder for booking {booking.get('id', '?')}: {e}")
+                    
+        except Exception as e:
+            logger.error(f"Return reminder check error: {e}")
+        
+        # Check every 15 minutes
+        await asyncio.sleep(900)
+
+@app.on_event("startup")
+async def start_reminder_task():
+    """Start the background reminder task"""
+    asyncio.create_task(check_return_reminders())
+    logger.info("Return reminder background task started (checks every 15 min)")
 
 # ========== VALIDATION HELPERS ==========
 
@@ -2795,6 +2959,50 @@ async def seed_data():
         "admin_email": "admin@relecogroup.it",
         "admin_password": "admin123"
     }
+
+# ========== EMAIL ENDPOINTS ==========
+
+@api_router.get("/email/log")
+async def get_email_log(admin: dict = Depends(get_admin_user)):
+    """Get log of sent emails"""
+    logs = await db.email_log.find({}, {"_id": 0}).sort("sent_at", -1).to_list(50)
+    return logs
+
+@api_router.post("/email/test-reminder/{prenotazione_id}")
+async def test_send_reminder(prenotazione_id: str, admin: dict = Depends(get_admin_user)):
+    """Manually send a return reminder for a booking (for testing)"""
+    booking = await db.prenotazioni.find_one({"id": prenotazione_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Prenotazione non trovata")
+    
+    email = booking.get("cliente_email", "")
+    nome = booking.get("cliente_nome", "Cliente")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Nessuna email cliente")
+    
+    if not BREVO_CONFIGURED:
+        raise HTTPException(status_code=400, detail="Brevo SMTP non configurato")
+    
+    html = build_return_reminder_html(booking)
+    ora_ric = booking.get("ora_riconsegna", "18:00")
+    subject = f"Promemoria: Riconsegna {booking.get('veicolo_marca', '')} {booking.get('veicolo_modello', '')} - ore {ora_ric}"
+    
+    success = send_brevo_email(email, nome, subject, html)
+    
+    await db.email_log.insert_one({
+        "key": f"test_reminder_{prenotazione_id}_{datetime.now(timezone.utc).isoformat()}",
+        "booking_id": prenotazione_id,
+        "email": email,
+        "type": "test_return_reminder",
+        "sent": success,
+        "sent_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    if success:
+        return {"message": f"Email promemoria inviata a {email}", "success": True}
+    else:
+        raise HTTPException(status_code=500, detail="Errore invio email")
 
 # Include router
 app.include_router(api_router)
