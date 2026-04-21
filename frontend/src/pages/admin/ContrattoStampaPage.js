@@ -1067,7 +1067,7 @@ export default function ContrattoStampaPage() {
                             className="h-5 text-xs w-20 text-right" 
                           />
                         ) : (
-                          <span className={`font-semibold ${p.franchigia_kasko_inclusa === false ? 'line-through text-gray-400' : ''}`}>€ {(p.franchigia_kasko ?? 500).toFixed(2)}</span>
+                          <span className="font-semibold">€ {(p.franchigia_kasko ?? 500).toFixed(2)}</span>
                         )}
                       </td>
                     </tr>
@@ -1091,7 +1091,7 @@ export default function ContrattoStampaPage() {
                             className="h-5 text-xs w-20 text-right" 
                           />
                         ) : (
-                          <span className={`font-semibold ${p.franchigia_sinistro_inclusa === false ? 'line-through text-gray-400' : ''}`}>€ {(p.franchigia_sinistro ?? 250).toFixed(2)}</span>
+                          <span className="font-semibold">€ {(p.franchigia_sinistro ?? 250).toFixed(2)}</span>
                         )}
                       </td>
                     </tr>
