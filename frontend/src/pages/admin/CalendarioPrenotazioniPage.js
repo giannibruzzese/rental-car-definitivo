@@ -54,38 +54,19 @@ const MONTHS_IT = [
 
 const DAYS_IT = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
-// Palette di colori unici per distinguere ogni prenotazione/nota
-const BOOKING_COLORS = [
-  { bg: 'bg-blue-100', text: 'text-blue-900', border: 'border-blue-500', dot: 'bg-blue-500' },
-  { bg: 'bg-emerald-100', text: 'text-emerald-900', border: 'border-emerald-500', dot: 'bg-emerald-500' },
-  { bg: 'bg-violet-100', text: 'text-violet-900', border: 'border-violet-500', dot: 'bg-violet-500' },
-  { bg: 'bg-amber-100', text: 'text-amber-900', border: 'border-amber-500', dot: 'bg-amber-500' },
-  { bg: 'bg-rose-100', text: 'text-rose-900', border: 'border-rose-500', dot: 'bg-rose-500' },
-  { bg: 'bg-cyan-100', text: 'text-cyan-900', border: 'border-cyan-500', dot: 'bg-cyan-500' },
-  { bg: 'bg-orange-100', text: 'text-orange-900', border: 'border-orange-500', dot: 'bg-orange-500' },
-  { bg: 'bg-teal-100', text: 'text-teal-900', border: 'border-teal-500', dot: 'bg-teal-500' },
-  { bg: 'bg-pink-100', text: 'text-pink-900', border: 'border-pink-500', dot: 'bg-pink-500' },
-  { bg: 'bg-indigo-100', text: 'text-indigo-900', border: 'border-indigo-500', dot: 'bg-indigo-500' },
-  { bg: 'bg-lime-100', text: 'text-lime-900', border: 'border-lime-500', dot: 'bg-lime-500' },
-  { bg: 'bg-fuchsia-100', text: 'text-fuchsia-900', border: 'border-fuchsia-500', dot: 'bg-fuchsia-500' },
-  { bg: 'bg-sky-100', text: 'text-sky-900', border: 'border-sky-500', dot: 'bg-sky-500' },
-  { bg: 'bg-red-100', text: 'text-red-900', border: 'border-red-500', dot: 'bg-red-500' },
-  { bg: 'bg-green-100', text: 'text-green-900', border: 'border-green-500', dot: 'bg-green-500' },
-  { bg: 'bg-purple-100', text: 'text-purple-900', border: 'border-purple-500', dot: 'bg-purple-500' },
-];
+// Base hue per ogni stato (HSL)
+const STATUS_HUE = {
+  bozza: { h: 220, s: 10 },           // Grigio
+  in_verifica: { h: 45, s: 85 },      // Giallo
+  approvata: { h: 150, s: 70 },       // Verde
+  contratto_generato: { h: 215, s: 80 }, // Blu
+  consegnato: { h: 270, s: 60 },      // Viola
+  chiuso: { h: 210, s: 15 },          // Slate/Grigio
+  annullata: { h: 0, s: 75 },         // Rosso
+  blocco: { h: 30, s: 85 },           // Arancione
+};
 
-const NOTE_COLORS = [
-  { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-500' },
-  { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-500' },
-  { bg: 'bg-pink-100', text: 'text-pink-800', border: 'border-pink-500' },
-  { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-500' },
-  { bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-500' },
-  { bg: 'bg-lime-100', text: 'text-lime-800', border: 'border-lime-500' },
-  { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-500' },
-  { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', border: 'border-fuchsia-500' },
-];
-
-// Hash stabile: stesso ID → stesso colore sempre
+// Hash stabile: stesso ID → stessa sfumatura sempre
 const hashString = (str) => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -96,12 +77,45 @@ const hashString = (str) => {
   return Math.abs(hash);
 };
 
-const getBookingColor = (bookingId) => {
-  return BOOKING_COLORS[hashString(bookingId) % BOOKING_COLORS.length];
+// Genera sfumatura unica per una prenotazione in base al suo stato
+const getBookingShade = (bookingId, status) => {
+  const base = STATUS_HUE[status] || STATUS_HUE.bozza;
+  const hash = hashString(bookingId);
+  
+  // Varia hue di ±12 gradi, saturazione ±15%, luminosità tra 85-95% (bg) e 20-35% (text)
+  const hueShift = (hash % 25) - 12;
+  const satShift = (hash % 30) - 15;
+  const lightBg = 88 + (hash % 8);        // 88-95 (sfondo chiaro)
+  const lightBorder = 45 + (hash % 15);   // 45-59 (bordo medio)
+  const lightText = 18 + (hash % 17);     // 18-34 (testo scuro)
+  
+  const h = base.h + hueShift;
+  const s = Math.max(5, Math.min(100, base.s + satShift));
+  
+  return {
+    bgStyle: { backgroundColor: `hsl(${h}, ${s}%, ${lightBg}%)` },
+    borderStyle: { borderLeftColor: `hsl(${h}, ${s}%, ${lightBorder}%)`, borderLeftWidth: '3px' },
+    textStyle: { color: `hsl(${h}, ${s}%, ${lightText}%)` },
+    dotStyle: { backgroundColor: `hsl(${h}, ${s}%, ${lightBorder}%)` },
+    badgeBg: `hsl(${h}, ${s}%, ${lightBg}%)`,
+    badgeText: `hsl(${h}, ${s}%, ${lightText}%)`,
+  };
 };
 
-const getNoteColor = (noteId) => {
-  return NOTE_COLORS[hashString(noteId) % NOTE_COLORS.length];
+// Sfumatura per le note (sempre su base giallo/ambra)
+const getNoteShade = (noteId) => {
+  const hash = hashString(noteId);
+  const h = 40 + (hash % 30);             // 40-69 (giallo → ambra)
+  const s = 70 + (hash % 25);             // 70-94
+  const lightBg = 88 + (hash % 8);
+  const lightBorder = 45 + (hash % 15);
+  const lightText = 20 + (hash % 15);
+  
+  return {
+    bgStyle: { backgroundColor: `hsl(${h}, ${s}%, ${lightBg}%)` },
+    borderStyle: { borderLeftColor: `hsl(${h}, ${s}%, ${lightBorder}%)`, borderLeftWidth: '3px' },
+    textStyle: { color: `hsl(${h}, ${s}%, ${lightText}%)` },
+  };
 };
 
 export default function CalendarioPrenotazioniPage() {
@@ -711,11 +725,12 @@ export default function CalendarioPrenotazioniPage() {
                   {noteGiorno.length > 0 && (
                     <div className="space-y-0.5 mt-1">
                       {noteGiorno.slice(0, 1).map(n => {
-                        const nColors = getNoteColor(n.id);
+                        const nShade = getNoteShade(n.id);
                         return (
                           <div
                             key={n.id}
-                            className={`text-xs px-1 py-0.5 rounded truncate ${nColors.bg} ${nColors.text} border-l-2 ${nColors.border}`}
+                            className="text-xs px-1 py-0.5 rounded truncate"
+                            style={{ ...nShade.bgStyle, ...nShade.borderStyle, ...nShade.textStyle }}
                             onClick={(e) => e.stopPropagation()}
                           >
                             {n.titolo}
@@ -728,9 +743,9 @@ export default function CalendarioPrenotazioniPage() {
                   {/* Bookings */}
                   <div className="space-y-0.5 overflow-hidden mt-1" style={{ maxHeight: '75px' }}>
                     {bookings.slice(0, 3).map(booking => {
-                      // Use unique color per booking based on ID
                       const isBlocco = isBloccoCalendario(booking);
-                      const colors = isBlocco ? STATUS_COLORS.blocco : getBookingColor(booking.id);
+                      const effectiveStatus = isBlocco ? 'blocco' : (booking.status || 'bozza');
+                      const shade = getBookingShade(booking.id, effectiveStatus);
                       const isStart = isBookingStart(booking, date);
                       const isEnd = isBookingEnd(booking, date);
 
@@ -741,13 +756,11 @@ export default function CalendarioPrenotazioniPage() {
                           onClick={(e) => e.stopPropagation()}
                           className={`
                             block text-xs px-1 py-0.5 truncate cursor-pointer
-                            ${colors.bg} ${colors.text}
                             ${isStart ? 'rounded-l' : ''}
                             ${isEnd ? 'rounded-r' : ''}
-                            ${!isStart && !isEnd ? '' : ''}
                             hover:opacity-80 transition-opacity
-                            border-l-2 ${colors.border}
                           `}
+                          style={{ ...shade.bgStyle, ...shade.borderStyle, ...shade.textStyle }}
                           onMouseEnter={() => setHoveredBooking(booking)}
                           onMouseLeave={() => setHoveredBooking(null)}
                         >
@@ -801,12 +814,16 @@ export default function CalendarioPrenotazioniPage() {
       </Card>
 
       {/* Booking tooltip/popup */}
-      {hoveredBooking && (
+      {hoveredBooking && (() => {
+        const isBlocco = isBloccoCalendario(hoveredBooking);
+        const effectiveStatus = isBlocco ? 'blocco' : (hoveredBooking.status || 'bozza');
+        const shade = getBookingShade(hoveredBooking.id, effectiveStatus);
+        return (
         <div className="fixed bottom-4 right-4 z-50">
           <Card className="shadow-xl border-2 w-80">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg ${getBookingColor(hoveredBooking.id).bg} flex items-center justify-center`}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={shade.bgStyle}>
                   <Car className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
@@ -820,15 +837,19 @@ export default function CalendarioPrenotazioniPage() {
                   <p className="text-sm text-slate-500">
                     {formatDateIT(hoveredBooking.data_ritiro)} → {formatDateIT(hoveredBooking.data_riconsegna)}
                   </p>
-                  <Badge className={`mt-2 ${getBookingColor(hoveredBooking.id).bg} ${getBookingColor(hoveredBooking.id).text}`}>
-                    {hoveredBooking.status?.replace('_', ' ')}
-                  </Badge>
+                  <span 
+                    className="inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ backgroundColor: shade.badgeBg, color: shade.badgeText }}
+                  >
+                    {effectiveStatus.replace('_', ' ')}
+                  </span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-      )}
+        );
+      })()}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1199,10 +1220,11 @@ export default function CalendarioPrenotazioniPage() {
                 </h4>
                 {getBookingsForDate(dayDetailDate).map(booking => {
                   const isBlocco = isBloccoCalendario(booking);
-                  const colors = isBlocco ? STATUS_COLORS.blocco : getBookingColor(booking.id);
+                  const effectiveStatus = isBlocco ? 'blocco' : (booking.status || 'bozza');
+                  const shade = getBookingShade(booking.id, effectiveStatus);
                   const canCancel = booking.status !== 'annullata' && booking.status !== 'chiuso';
                   return (
-                    <div key={booking.id} className={`p-3 rounded-lg border-l-4 ${colors.bg} ${colors.border}`}>
+                    <div key={booking.id} className="p-3 rounded-lg" style={{ ...shade.bgStyle, ...shade.borderStyle }}>
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-semibold text-slate-900">
@@ -1223,9 +1245,12 @@ export default function CalendarioPrenotazioniPage() {
                           )}
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                          <Badge className={`${colors.bg} ${colors.text}`}>
+                          <span 
+                            className="inline-block text-xs px-2 py-0.5 rounded-full font-medium"
+                            style={{ backgroundColor: shade.badgeBg, color: shade.badgeText }}
+                          >
                             {isBlocco ? 'blocco' : booking.status?.replace('_', ' ')}
-                          </Badge>
+                          </span>
                           <div className="flex gap-1 flex-wrap justify-end">
                             <Link to={`/admin/prenotazioni/${booking.id}`}>
                               <Button size="sm" variant="outline">
@@ -1267,12 +1292,12 @@ export default function CalendarioPrenotazioniPage() {
                   <StickyNote className="w-4 h-4" /> Note
                 </h4>
                 {getNotesForDate(dayDetailDate).map(n => {
-                  const nColors = getNoteColor(n.id);
+                  const nShade = getNoteShade(n.id);
                   return (
-                  <div key={n.id} className={`p-3 rounded-lg border-l-4 ${nColors.bg} ${nColors.border}`}>
+                  <div key={n.id} className="p-3 rounded-lg" style={{ ...nShade.bgStyle, ...nShade.borderStyle }}>
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className={`font-semibold ${nColors.text}`}>{n.titolo}</p>
+                        <p className="font-semibold" style={nShade.textStyle}>{n.titolo}</p>
                         {n.contenuto && <p className="text-sm text-slate-600 mt-1">{n.contenuto}</p>}
                       </div>
                       <Button 
