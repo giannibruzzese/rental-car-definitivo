@@ -54,6 +54,56 @@ const MONTHS_IT = [
 
 const DAYS_IT = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
+// Palette di colori unici per distinguere ogni prenotazione/nota
+const BOOKING_COLORS = [
+  { bg: 'bg-blue-100', text: 'text-blue-900', border: 'border-blue-500', dot: 'bg-blue-500' },
+  { bg: 'bg-emerald-100', text: 'text-emerald-900', border: 'border-emerald-500', dot: 'bg-emerald-500' },
+  { bg: 'bg-violet-100', text: 'text-violet-900', border: 'border-violet-500', dot: 'bg-violet-500' },
+  { bg: 'bg-amber-100', text: 'text-amber-900', border: 'border-amber-500', dot: 'bg-amber-500' },
+  { bg: 'bg-rose-100', text: 'text-rose-900', border: 'border-rose-500', dot: 'bg-rose-500' },
+  { bg: 'bg-cyan-100', text: 'text-cyan-900', border: 'border-cyan-500', dot: 'bg-cyan-500' },
+  { bg: 'bg-orange-100', text: 'text-orange-900', border: 'border-orange-500', dot: 'bg-orange-500' },
+  { bg: 'bg-teal-100', text: 'text-teal-900', border: 'border-teal-500', dot: 'bg-teal-500' },
+  { bg: 'bg-pink-100', text: 'text-pink-900', border: 'border-pink-500', dot: 'bg-pink-500' },
+  { bg: 'bg-indigo-100', text: 'text-indigo-900', border: 'border-indigo-500', dot: 'bg-indigo-500' },
+  { bg: 'bg-lime-100', text: 'text-lime-900', border: 'border-lime-500', dot: 'bg-lime-500' },
+  { bg: 'bg-fuchsia-100', text: 'text-fuchsia-900', border: 'border-fuchsia-500', dot: 'bg-fuchsia-500' },
+  { bg: 'bg-sky-100', text: 'text-sky-900', border: 'border-sky-500', dot: 'bg-sky-500' },
+  { bg: 'bg-red-100', text: 'text-red-900', border: 'border-red-500', dot: 'bg-red-500' },
+  { bg: 'bg-green-100', text: 'text-green-900', border: 'border-green-500', dot: 'bg-green-500' },
+  { bg: 'bg-purple-100', text: 'text-purple-900', border: 'border-purple-500', dot: 'bg-purple-500' },
+];
+
+const NOTE_COLORS = [
+  { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-500' },
+  { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-500' },
+  { bg: 'bg-pink-100', text: 'text-pink-800', border: 'border-pink-500' },
+  { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-500' },
+  { bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-500' },
+  { bg: 'bg-lime-100', text: 'text-lime-800', border: 'border-lime-500' },
+  { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-500' },
+  { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', border: 'border-fuchsia-500' },
+];
+
+// Hash stabile: stesso ID → stesso colore sempre
+const hashString = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const getBookingColor = (bookingId) => {
+  return BOOKING_COLORS[hashString(bookingId) % BOOKING_COLORS.length];
+};
+
+const getNoteColor = (noteId) => {
+  return NOTE_COLORS[hashString(noteId) % NOTE_COLORS.length];
+};
+
 export default function CalendarioPrenotazioniPage() {
   const { token } = useAuth();
   const [prenotazioni, setPrenotazioni] = useState([]);
@@ -660,24 +710,27 @@ export default function CalendarioPrenotazioniPage() {
                   {/* Notes */}
                   {noteGiorno.length > 0 && (
                     <div className="space-y-0.5 mt-1">
-                      {noteGiorno.slice(0, 1).map(n => (
-                        <div
-                          key={n.id}
-                          className={`text-xs px-1 py-0.5 rounded truncate bg-yellow-100 text-yellow-800 border-l-2 border-yellow-500`}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          📝 {n.titolo}
-                        </div>
-                      ))}
+                      {noteGiorno.slice(0, 1).map(n => {
+                        const nColors = getNoteColor(n.id);
+                        return (
+                          <div
+                            key={n.id}
+                            className={`text-xs px-1 py-0.5 rounded truncate ${nColors.bg} ${nColors.text} border-l-2 ${nColors.border}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {n.titolo}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
                   {/* Bookings */}
                   <div className="space-y-0.5 overflow-hidden mt-1" style={{ maxHeight: '75px' }}>
                     {bookings.slice(0, 3).map(booking => {
-                      // Use 'blocco' colors for calendar blocks (admin only)
+                      // Use unique color per booking based on ID
                       const isBlocco = isBloccoCalendario(booking);
-                      const colors = isBlocco ? STATUS_COLORS.blocco : (STATUS_COLORS[booking.status] || STATUS_COLORS.bozza);
+                      const colors = isBlocco ? STATUS_COLORS.blocco : getBookingColor(booking.id);
                       const isStart = isBookingStart(booking, date);
                       const isEnd = isBookingEnd(booking, date);
 
@@ -753,7 +806,7 @@ export default function CalendarioPrenotazioniPage() {
           <Card className="shadow-xl border-2 w-80">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg ${STATUS_COLORS[hoveredBooking.status]?.bg} flex items-center justify-center`}>
+                <div className={`w-10 h-10 rounded-lg ${getBookingColor(hoveredBooking.id).bg} flex items-center justify-center`}>
                   <Car className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
@@ -767,7 +820,7 @@ export default function CalendarioPrenotazioniPage() {
                   <p className="text-sm text-slate-500">
                     {formatDateIT(hoveredBooking.data_ritiro)} → {formatDateIT(hoveredBooking.data_riconsegna)}
                   </p>
-                  <Badge className={`mt-2 ${STATUS_COLORS[hoveredBooking.status]?.bg} ${STATUS_COLORS[hoveredBooking.status]?.text}`}>
+                  <Badge className={`mt-2 ${getBookingColor(hoveredBooking.id).bg} ${getBookingColor(hoveredBooking.id).text}`}>
                     {hoveredBooking.status?.replace('_', ' ')}
                   </Badge>
                 </div>
@@ -1146,10 +1199,10 @@ export default function CalendarioPrenotazioniPage() {
                 </h4>
                 {getBookingsForDate(dayDetailDate).map(booking => {
                   const isBlocco = isBloccoCalendario(booking);
-                  const colors = isBlocco ? STATUS_COLORS.blocco : (STATUS_COLORS[booking.status] || STATUS_COLORS.bozza);
+                  const colors = isBlocco ? STATUS_COLORS.blocco : getBookingColor(booking.id);
                   const canCancel = booking.status !== 'annullata' && booking.status !== 'chiuso';
                   return (
-                    <div key={booking.id} className={`p-3 rounded-lg border ${colors.bg}`}>
+                    <div key={booking.id} className={`p-3 rounded-lg border-l-4 ${colors.bg} ${colors.border}`}>
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-semibold text-slate-900">
@@ -1213,11 +1266,13 @@ export default function CalendarioPrenotazioniPage() {
                 <h4 className="font-semibold text-slate-700 flex items-center gap-2">
                   <StickyNote className="w-4 h-4" /> Note
                 </h4>
-                {getNotesForDate(dayDetailDate).map(n => (
-                  <div key={n.id} className="p-3 rounded-lg border bg-yellow-50 border-yellow-200">
+                {getNotesForDate(dayDetailDate).map(n => {
+                  const nColors = getNoteColor(n.id);
+                  return (
+                  <div key={n.id} className={`p-3 rounded-lg border-l-4 ${nColors.bg} ${nColors.border}`}>
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-semibold text-yellow-800">{n.titolo}</p>
+                        <p className={`font-semibold ${nColors.text}`}>{n.titolo}</p>
                         {n.contenuto && <p className="text-sm text-slate-600 mt-1">{n.contenuto}</p>}
                       </div>
                       <Button 
@@ -1230,7 +1285,8 @@ export default function CalendarioPrenotazioniPage() {
                       </Button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             
