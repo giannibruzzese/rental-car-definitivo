@@ -82,19 +82,21 @@ const getBookingShade = (bookingId, status) => {
   const base = STATUS_HUE[status] || STATUS_HUE.bozza;
   const hash = hashString(bookingId);
   
-  // Varia hue di ±12 gradi, saturazione ±15%, luminosità tra 85-95% (bg) e 20-35% (text)
-  const hueShift = (hash % 25) - 12;
-  const satShift = (hash % 30) - 15;
-  const lightBg = 88 + (hash % 8);        // 88-95 (sfondo chiaro)
-  const lightBorder = 45 + (hash % 15);   // 45-59 (bordo medio)
-  const lightText = 18 + (hash % 17);     // 18-34 (testo scuro)
+  // Varia hue di ±15 gradi, saturazione ±20%, luminosità variabile
+  const hueShift = (hash % 31) - 15;
+  const satShift = (hash % 40) - 20;
+  const lightBg = 85 + (hash % 10);        // 85-94 (sfondo chiaro)
+  const lightBorder = 42 + (hash % 18);    // 42-59 (bordo medio)
+  const lightText = 15 + (hash % 20);      // 15-34 (testo scuro)
   
   const h = base.h + hueShift;
   const s = Math.max(5, Math.min(100, base.s + satShift));
   
   return {
     bgStyle: { backgroundColor: `hsl(${h}, ${s}%, ${lightBg}%)` },
-    borderStyle: { borderLeftColor: `hsl(${h}, ${s}%, ${lightBorder}%)`, borderLeftWidth: '3px' },
+    borderColor: `hsl(${h}, ${s}%, ${lightBorder}%)`,
+    borderStyle: { borderLeft: `4px solid hsl(${h}, ${s}%, ${lightBorder}%)` },
+    fullBorderStyle: { border: `2px solid hsl(${h}, ${s}%, ${lightBorder}%)`, borderLeft: `5px solid hsl(${h}, ${s}%, ${lightBorder}%)` },
     textStyle: { color: `hsl(${h}, ${s}%, ${lightText}%)` },
     dotStyle: { backgroundColor: `hsl(${h}, ${s}%, ${lightBorder}%)` },
     badgeBg: `hsl(${h}, ${s}%, ${lightBg}%)`,
@@ -105,15 +107,16 @@ const getBookingShade = (bookingId, status) => {
 // Sfumatura per le note (sempre su base giallo/ambra)
 const getNoteShade = (noteId) => {
   const hash = hashString(noteId);
-  const h = 40 + (hash % 30);             // 40-69 (giallo → ambra)
-  const s = 70 + (hash % 25);             // 70-94
-  const lightBg = 88 + (hash % 8);
-  const lightBorder = 45 + (hash % 15);
-  const lightText = 20 + (hash % 15);
+  const h = 38 + (hash % 35);             // 38-72 (giallo → ambra → arancio)
+  const s = 65 + (hash % 30);             // 65-94
+  const lightBg = 86 + (hash % 9);
+  const lightBorder = 42 + (hash % 18);
+  const lightText = 18 + (hash % 17);
   
   return {
     bgStyle: { backgroundColor: `hsl(${h}, ${s}%, ${lightBg}%)` },
-    borderStyle: { borderLeftColor: `hsl(${h}, ${s}%, ${lightBorder}%)`, borderLeftWidth: '3px' },
+    borderStyle: { borderLeft: `4px solid hsl(${h}, ${s}%, ${lightBorder}%)` },
+    fullBorderStyle: { border: `2px solid hsl(${h}, ${s}%, ${lightBorder}%)`, borderLeft: `5px solid hsl(${h}, ${s}%, ${lightBorder}%)` },
     textStyle: { color: `hsl(${h}, ${s}%, ${lightText}%)` },
   };
 };
@@ -1224,7 +1227,7 @@ export default function CalendarioPrenotazioniPage() {
                   const shade = getBookingShade(booking.id, effectiveStatus);
                   const canCancel = booking.status !== 'annullata' && booking.status !== 'chiuso';
                   return (
-                    <div key={booking.id} className="p-3 rounded-lg" style={{ ...shade.bgStyle, ...shade.borderStyle }}>
+                    <div key={booking.id} className="p-3 rounded-lg" style={{ ...shade.bgStyle, ...shade.fullBorderStyle }}>
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-semibold text-slate-900">
@@ -1294,7 +1297,7 @@ export default function CalendarioPrenotazioniPage() {
                 {getNotesForDate(dayDetailDate).map(n => {
                   const nShade = getNoteShade(n.id);
                   return (
-                  <div key={n.id} className="p-3 rounded-lg" style={{ ...nShade.bgStyle, ...nShade.borderStyle }}>
+                  <div key={n.id} className="p-3 rounded-lg" style={{ ...nShade.bgStyle, ...nShade.fullBorderStyle }}>
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-semibold" style={nShade.textStyle}>{n.titolo}</p>
