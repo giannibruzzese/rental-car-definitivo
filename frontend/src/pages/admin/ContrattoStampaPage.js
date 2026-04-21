@@ -554,7 +554,7 @@ export default function ContrattoStampaPage() {
       {/* CONTRATTO - Formato A4 */}
       <div ref={contractRef} className="max-w-[210mm] mx-auto bg-white print:max-w-none print:mx-0 shadow-lg print:shadow-none">
         
-        {/* ========== PAGINA 1/5 ========== */}
+        {/* ========== PAGINA 1/4 ========== */}
         <div data-page="1" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
           
           {/* HEADER */}
@@ -574,7 +574,7 @@ export default function ContrattoStampaPage() {
               </div>
               <div className="text-right">
                 <h2 className="text-xl font-bold">CONTRATTO</h2>
-                <p className="text-xs text-gray-500">Pag. 1/5</p>
+                <p className="text-xs text-gray-500">Pag. 1/4</p>
               </div>
             </div>
           </div>
@@ -887,12 +887,12 @@ export default function ContrattoStampaPage() {
 
         </div>
 
-        {/* ========== PAGINA 2/5 ========== */}
+        {/* ========== PAGINA 2/4 ========== */}
         <div data-page="2" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
           {/* Header pagina 2 */}
           <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
             <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 2/5</span>
+            <span className="text-xs text-gray-500">Pag. 2/4</span>
           </div>
 
           {/* IV. DURATA & CHILOMETRAGGIO */}
@@ -1053,7 +1053,6 @@ export default function ContrattoStampaPage() {
                           <input type="checkbox" checked={p.franchigia_kasko_inclusa !== false} onChange={e => updateField('franchigia_kasko_inclusa', e.target.checked)} className="w-3 h-3 mr-1" />
                         )}
                         Attivazione CASCO con franchigia danni
-                        {!isEditing && p.franchigia_kasko_inclusa === false && <span className="text-red-500 text-[9px] ml-1">(ESCLUSA)</span>}
                       </td>
                       <td className="border border-black p-1 text-right">
                         {isEditing ? (
@@ -1078,7 +1077,6 @@ export default function ContrattoStampaPage() {
                           <input type="checkbox" checked={p.franchigia_sinistro_inclusa !== false} onChange={e => updateField('franchigia_sinistro_inclusa', e.target.checked)} className="w-3 h-3 mr-1" />
                         )}
                         Penalità per sinistro con responsabilità
-                        {!isEditing && p.franchigia_sinistro_inclusa === false && <span className="text-red-500 text-[9px] ml-1">(ESCLUSA)</span>}
                       </td>
                       <td className="border border-black p-1 text-right">
                         {isEditing ? (
@@ -1441,11 +1439,11 @@ export default function ContrattoStampaPage() {
           </div>
         </div>
 
-        {/* ========== PAGINA 3/5 ========== */}
+        {/* ========== PAGINA 3/4 ========== */}
         <div data-page="3" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
           <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
             <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 3/5</span>
+            <span className="text-xs text-gray-500">Pag. 3/4</span>
           </div>
 
           {/* VII. DANNI PREESISTENTI */}
@@ -1656,20 +1654,33 @@ export default function ContrattoStampaPage() {
               </div>
             </div>
           </div>
+
+          {/* IX. DICHIARAZIONI E SOTTOSCRIZIONI */}
+          <div className="border border-black mt-4">
+            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+              IX. DICHIARAZIONI E SOTTOSCRIZIONI
+            </div>
+            <div className="p-3 text-xs">
+              <p className="leading-relaxed">Il sottoscritto locatario dichiara di aver letto attentamente e di accettare integralmente le condizioni generali di noleggio riportate nel presente contratto, nonche' ogni clausola ivi contenuta.</p>
+              <div className="mt-3 flex justify-between">
+                <div><span className="text-gray-600">Luogo e data: </span>{p.luogo_ritiro || 'Soverato'}, {formatDateIT(p.data_ritiro)}</div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* ========== PAGINA 4/5 - CONDIZIONI GENERALI ========== */}
-        <div data-page="4" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
-          <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
+        {/* ========== PAGINA 4/4 - CONDIZIONI GENERALI + FIRME ========== */}
+        <div data-page="4" className="p-8 print:p-6" style={{ minHeight: '297mm' }}>
+          <div className="flex justify-between items-center border-b border-black pb-2 mb-3">
             <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 4/5</span>
+            <span className="text-xs text-gray-500">Pag. 4/4</span>
           </div>
 
           <div className="border border-black">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
-              IX. CONDIZIONI GENERALI DI NOLEGGIO
+              X. CONDIZIONI GENERALI DI NOLEGGIO
             </div>
-            <div className="p-2 leading-relaxed" style={{ fontSize: '6.5pt', lineHeight: '1.3' }}>
+            <div className="p-2 leading-snug" style={{ fontSize: '6pt', lineHeight: '1.25' }}>
               <p className="mb-1"><strong>1.</strong> La società RE.LE.CO. Group SRL in seguito definita Locatrice, concede in noleggio alla persona che sottoscrive il presente contratto, in nome proprio ovvero in qualità di legale rappresentate della società indicata, in seguito definita Conduttore, il veicolo descritto nel contratto stesso.</p>
               
               <p className="mb-1"><strong>2.</strong> Il Conduttore dichiara che il veicolo, al momento della presa in consegna, si trova in buone condizioni di meccanica e di carrozzeria. Pertanto si obbliga a riconsegnarlo nello stesso stato in cui l'ha ricevuto, salvo il normale deterioramento dovuto all'uso, segnalando per iscritto alla Locatrice gli eventuali danni o anomalie.</p>
@@ -1701,73 +1712,49 @@ export default function ContrattoStampaPage() {
               <p className="mb-1"><strong>15.</strong> Per quanto non previsto nel presente contratto si fa riferimento alle norme del codice civile. Il Conduttore, con la sottoscrizione del presente contratto, dichiara di approvare pienamente e senza riserve quanto in esso contenuto. Agli effetti degli artt. 1341 e 1342 del C.C. il sottoscritto dichiara di approvare specificatamente le disposizioni dei seguenti articoli, delle condizioni contenute nel modello di cui sopra; art. 7 divieto di far guidare il veicolo ad altre persone - art.10 rivalsa sul Conduttore nel caso che la copertura assicurativa venisse inoperante - art. 11 pagamento dell'eventuale franchigia da parte del conduttore - art. 14 Il Conduttore si impegna a pagare tutte le ammende.</p>
             </div>
           </div>
-        </div>
-
-        {/* ========== PAGINA 5/5 - FIRME ========== */}
-        <div data-page="5" className="p-8 print:p-6" style={{ minHeight: '297mm' }}>
-          <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
-            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 5/5</span>
-          </div>
-
-          <div className="border border-black mb-8">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
-              X. DICHIARAZIONI E SOTTOSCRIZIONI
-            </div>
-            <div className="p-4">
-              <p className="text-sm mb-6">
-                Il sottoscritto locatario dichiara di aver letto attentamente e di accettare integralmente 
-                le condizioni generali di noleggio riportate nel presente contratto, nonché ogni clausola ivi contenuta.
-              </p>
-
-              <div className="text-sm mb-4">
-                <p>Luogo e data: <strong>{AGENCY.comune}</strong>, _______________</p>
-              </div>
-            </div>
-          </div>
 
           {/* FIRME */}
-          <div className="border border-black">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+          <div className="border border-black mt-3">
+            <div className="bg-black text-white px-2 py-0.5 text-xs font-bold">
               FIRME
             </div>
             <div className="grid grid-cols-2 gap-0">
-              <div className="p-6 border-r border-black text-center">
-                <p className="font-bold mb-4">IL LOCATORE / NOLEGGIATORE</p>
-                <div className="border-b-2 border-black h-24 mx-8 mb-2"></div>
-                <p className="text-sm">Firma</p>
-                <p className="text-xs text-gray-500 mt-2">{AGENCY.nome}</p>
+              <div className="p-3 border-r border-black text-center">
+                <p className="font-bold text-xs mb-2">IL LOCATORE / NOLEGGIATORE</p>
+                <div className="border-b-2 border-black h-14 mx-6 mb-1"></div>
+                <p className="text-[9px]">Firma</p>
+                <p className="text-[8px] text-gray-500 mt-1">{AGENCY.nome}</p>
               </div>
-              <div className="p-6 text-center">
-                <p className="font-bold mb-4">IL LOCATARIO / CLIENTE</p>
-                <div className="border-b-2 border-black h-24 mx-8 mb-2"></div>
-                <p className="text-sm">Firma</p>
-                <p className="text-xs text-gray-500 mt-2">{cliente?.nome} {cliente?.cognome}</p>
+              <div className="p-3 text-center">
+                <p className="font-bold text-xs mb-2">IL LOCATARIO / CLIENTE</p>
+                <div className="border-b-2 border-black h-14 mx-6 mb-1"></div>
+                <p className="text-[9px]">Firma</p>
+                <p className="text-[8px] text-gray-500 mt-1">{cliente?.nome} {cliente?.cognome}</p>
               </div>
             </div>
           </div>
 
-          {/* Firma clausole vessatorie */}
-          <div className="mt-6 border border-black p-4">
-            <p className="text-xs mb-4">
+          {/* Clausole vessatorie */}
+          <div className="mt-2 border border-black p-2">
+            <p className="text-[7pt] mb-2">
               Firma apposta ai sensi e per gli effetti degli artt. 1341 e 1342 c.c. con specifica 
               approvazione delle clausole eventualmente indicate nelle condizioni generali di noleggio
               (art. 7, art. 10, art. 11, art. 14):
             </p>
-            <div className="grid grid-cols-2 gap-8 mt-4">
+            <div className="grid grid-cols-2 gap-6">
               <div className="text-center">
-                <div className="border-b-2 border-black h-16 mx-12 mb-2"></div>
-                <p className="text-xs">Firma Locatore</p>
+                <div className="border-b-2 border-black h-10 mx-8 mb-1"></div>
+                <p className="text-[8px]">Firma Locatore</p>
               </div>
               <div className="text-center">
-                <div className="border-b-2 border-black h-16 mx-12 mb-2"></div>
-                <p className="text-xs">Firma Locatario</p>
+                <div className="border-b-2 border-black h-10 mx-8 mb-1"></div>
+                <p className="text-[8px]">Firma Locatario</p>
               </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="mt-8 pt-4 border-t border-black text-center text-xs text-gray-500">
+          <div className="mt-3 pt-2 border-t border-black text-center text-[8px] text-gray-500">
             <p>{AGENCY.nome} - {AGENCY.indirizzo}, {AGENCY.cap} {AGENCY.comune} ({AGENCY.provincia})</p>
             <p>P.IVA: {AGENCY.piva} - Tel: {AGENCY.telefono} - Email: {AGENCY.email}</p>
           </div>
