@@ -308,12 +308,12 @@ export default function ClientContrattoPage() {
               <div className="grid grid-cols-4 gap-2 text-xs mb-3">
                 <div><span className="text-gray-600">Cognome:</span> <strong>{cliente?.cognome}</strong></div>
                 <div><span className="text-gray-600">Nome:</span> <strong>{cliente?.nome}</strong></div>
-                <div><span className="text-gray-600">Nascita:</span> {cliente?.luogo_nascita}, {cliente?.data_nascita}</div>
+                <div><span className="text-gray-600">Nascita:</span> {cliente?.luogo_nascita}, {formatDateIT(cliente?.data_nascita)}</div>
                 <div><span className="text-gray-600">Cod. fiscale:</span> {cliente?.codice_fiscale}</div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div><span className="text-gray-600">Residenza:</span> {cliente?.indirizzo}, {cliente?.comune} ({cliente?.provincia})</div>
-                <div><span className="text-gray-600">Patente:</span> N. {patente.numero} Cat. {patente.categoria} Scad. {patente.data_scadenza}</div>
+                <div><span className="text-gray-600">Patente:</span> N. {patente.numero} Cat. {patente.categoria} Scad. {formatDateIT(patente.data_scadenza)}</div>
               </div>
             </div>
           </div>

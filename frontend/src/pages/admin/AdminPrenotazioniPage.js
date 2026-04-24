@@ -409,7 +409,7 @@ export function AdminPrenotazioneDetailPage() {
                   </div>
                   <div>
                     <p className="text-slate-500">Scadenza Patente</p>
-                    <p className="font-medium">{cliente.patente?.data_scadenza}</p>
+                    <p className="font-medium">{formatDateIT(cliente.patente?.data_scadenza)}</p>
                   </div>
                 </div>
               )}

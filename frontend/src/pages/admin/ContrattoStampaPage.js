@@ -757,7 +757,7 @@ export default function ContrattoStampaPage() {
                       <Input type="date" value={clienteContratto?.data_nascita || ''} onChange={e => updateClienteField('data_nascita', e.target.value)} className="h-5 text-xs w-24 inline" />
                     </span>
                   ) : (
-                    <span>{clienteContratto?.luogo_nascita}, {clienteContratto?.data_nascita}</span>
+                    <span>{clienteContratto?.luogo_nascita}, {formatDateIT(clienteContratto?.data_nascita)}</span>
                   )}
                 </div>
                 <div>
@@ -791,7 +791,7 @@ export default function ContrattoStampaPage() {
                       Scad. <Input type="date" value={patenteContratto.data_scadenza || ''} onChange={e => updateClientePatenteField('data_scadenza', e.target.value)} className="h-5 text-xs w-28 inline" />
                     </span>
                   ) : (
-                    <span>N. {patenteContratto.numero} Cat. {patenteContratto.categoria} Scad. {patenteContratto.data_scadenza}</span>
+                    <span>N. {patenteContratto.numero} Cat. {patenteContratto.categoria} Scad. {formatDateIT(patenteContratto.data_scadenza)}</span>
                   )}
                 </div>
               </div>
@@ -813,7 +813,7 @@ export default function ContrattoStampaPage() {
                     <tr key={i}>
                       <td className="border border-black p-1">{c.nome} {c.cognome}</td>
                       <td className="border border-black p-1">{c.codice_fiscale}</td>
-                      <td className="border border-black p-1">{c.luogo_nascita}, {c.data_nascita}</td>
+                      <td className="border border-black p-1">{c.luogo_nascita}, {formatDateIT(c.data_nascita)}</td>
                       <td className="border border-black p-1">{c.patente_numero} ({c.patente_categoria})</td>
                       <td className="border border-black p-1">{c.cellulare}</td>
                     </tr>

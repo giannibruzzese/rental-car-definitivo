@@ -189,6 +189,25 @@ export default function CalendarioPrenotazioniPage() {
   });
   const [savingBooking, setSavingBooking] = useState(false);
   
+  // Auto-load carta di credito dal profilo quando si seleziona un cliente
+  useEffect(() => {
+    if (selectedCliente && clienti.length > 0) {
+      const cliente = clienti.find(c => c.id === selectedCliente);
+      if (cliente && cliente.carta_credito) {
+        const cc = cliente.carta_credito;
+        setCartaCredito({
+          circuito: cc.circuito || '',
+          intestatario: cc.intestatario || '',
+          numero: cc.numero || '',
+          scadenza_mese: cc.scadenza_mese || '',
+          scadenza_anno: cc.scadenza_anno || ''
+        });
+      } else {
+        setCartaCredito({ circuito: '', intestatario: '', numero: '', scadenza_mese: '', scadenza_anno: '' });
+      }
+    }
+  }, [selectedCliente, clienti]);
+
   // Prezzo dinamico
   const [prezzoDinamico, setPrezzoDinamico] = useState(null);
   const [loadingPrezzo, setLoadingPrezzo] = useState(false);

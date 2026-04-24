@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+const formatDateIT = (dateStr) => {
+  if (!dateStr) return '';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) { const [y,m,d] = dateStr.substring(0,10).split('-'); return `${d}/${m}/${y}`; }
+  return dateStr;
+};
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -531,7 +538,7 @@ export default function RegistrationPage() {
                   <p><span className="font-medium">Email:</span> {formData.email}</p>
                   <p><span className="font-medium">Cellulare:</span> {formData.cellulare}</p>
                   <p><span className="font-medium">Patente:</span> {formData.patente_numero} ({formData.patente_categoria})</p>
-                  <p><span className="font-medium">Scadenza:</span> {formData.patente_data_scadenza}</p>
+                  <p><span className="font-medium">Scadenza:</span> {formatDateIT(formData.patente_data_scadenza)}</p>
                 </div>
               </div>
               

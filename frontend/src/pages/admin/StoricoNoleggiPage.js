@@ -10,6 +10,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const formatDateIT = (dateStr) => {
+  if (!dateStr) return '';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    const [y, m, d] = dateStr.substring(0, 10).split('-');
+    return `${d}/${m}/${y}`;
+  }
+  try { const dt = new Date(dateStr); return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`; } catch { return dateStr; }
+};
+
 const statusLabels = {
   bozza: { label: 'Bozza', color: 'bg-slate-100 text-slate-700' },
   in_verifica: { label: 'In Verifica', color: 'bg-yellow-100 text-yellow-700' },
@@ -162,7 +172,7 @@ export default function StoricoNoleggiPage() {
                   {prenotazioni.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>
-                        <p className="text-sm">{new Date(p.created_at).toLocaleDateString('it-IT')}</p>
+                        <p className="text-sm">{formatDateIT(p.created_at)}</p>
                         <p className="text-xs text-slate-500">{new Date(p.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p>
                       </TableCell>
                       <TableCell>
