@@ -412,7 +412,7 @@ export default function ContrattoStampaPage() {
       tariffa_stagionale: tariffaStagionaleInfo,
       tariffa_base: nuovaTariffaBase,
       km_inclusi_totali: nuoviKmInclusi,
-      totale_noleggio: nuovaTariffaBase + (prev.totale_servizi || 0) + (prev.totale_franchigie || 0)
+      totale_noleggio: nuovaTariffaBase + (prev.totale_servizi || 0)
     }));
     
     toast.info(`Durata aggiornata: ${durata} giorni → Riconsegna: ${formatDateIT(nuovaDataRiconsegna)} | €${tariffaGiornaliera}/gg`);
@@ -466,7 +466,7 @@ export default function ContrattoStampaPage() {
       tariffa_giornaliera: tariffaGiornaliera,
       tariffa_stagionale: tariffaStagionaleInfo,
       tariffa_base: nuovaTariffaBase,
-      totale_noleggio: nuovaTariffaBase + (prev.totale_servizi || 0) + (prev.totale_franchigie || 0)
+      totale_noleggio: nuovaTariffaBase + (prev.totale_servizi || 0)
     }));
   };
 
@@ -501,7 +501,7 @@ export default function ContrattoStampaPage() {
       km_inclusi_totali: nuoviKmInclusi,
       prezzo_km_extra: prezzoKmExtra,
       deposito_cauzionale: depositoCauzionale,
-      totale_noleggio: nuovaTariffaBase + (prev.totale_servizi || 0) + (prev.totale_franchigie || 0)
+      totale_noleggio: nuovaTariffaBase + (prev.totale_servizi || 0)
     }));
     
     toast.success(`Veicolo cambiato: ${veicolo.marca} ${veicolo.modello} - €${tariffaGiornaliera}/giorno`);
@@ -1110,8 +1110,6 @@ export default function ContrattoStampaPage() {
                     <tr className="border-t border-black font-bold"><td className="py-1">Totale (IVA inclusa):</td><td className="text-right">{(
                       (p.tariffa_base || 0) + 
                       (p.totale_servizi || 0) + 
-                      (p.franchigia_kasko_inclusa !== false ? (p.franchigia_kasko ?? 500) : 0) + 
-                      (p.franchigia_sinistro_inclusa !== false ? (p.franchigia_sinistro ?? 250) : 0) +
                       (p.totale_addebiti_rientro || 0)
                     ).toFixed(2)} €</td></tr>
                     <tr>
@@ -1127,8 +1125,6 @@ export default function ContrattoStampaPage() {
                     <tr className="bg-yellow-100 font-bold"><td className="py-1">Saldo alla consegna:</td><td className="text-right">{(
                       (p.tariffa_base || 0) + 
                       (p.totale_servizi || 0) + 
-                      (p.franchigia_kasko_inclusa !== false ? (p.franchigia_kasko ?? 500) : 0) + 
-                      (p.franchigia_sinistro_inclusa !== false ? (p.franchigia_sinistro ?? 250) : 0) +
                       (p.totale_addebiti_rientro || 0) -
                       (p.acconto || 0)
                     ).toFixed(2)} €</td></tr>

@@ -1453,6 +1453,12 @@ async def create_prenotazione(data: PrenotazioneCreate, user: dict = Depends(get
         "contratto_id": None,
         "firma_cliente": None,
         "firma_locatore": None,
+        # Credit card from client profile
+        "carta_circuito": user.get("carta_credito", {}).get("circuito", "") if user.get("carta_credito") else "",
+        "carta_intestatario": user.get("carta_credito", {}).get("intestatario", "") if user.get("carta_credito") else "",
+        "carta_numero": user.get("carta_credito", {}).get("numero", "") if user.get("carta_credito") else "",
+        "carta_scadenza_mese": user.get("carta_credito", {}).get("scadenza_mese", "") if user.get("carta_credito") else "",
+        "carta_scadenza_anno": user.get("carta_credito", {}).get("scadenza_anno", "") if user.get("carta_credito") else "",
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -1668,12 +1674,12 @@ async def admin_create_prenotazione(data: dict, admin: dict = Depends(get_admin_
         "acconto": 0,
         "status": data.get("status", "approvata"),
         "contratto_generato": False,
-        # Credit card data if provided
-        "carta_circuito": data.get("carta_circuito", ""),
-        "carta_intestatario": data.get("carta_intestatario", ""),
-        "carta_numero": data.get("carta_numero", ""),
-        "carta_scadenza_mese": data.get("carta_scadenza_mese", ""),
-        "carta_scadenza_anno": data.get("carta_scadenza_anno", ""),
+        # Credit card data - load from client profile if not provided
+        "carta_circuito": data.get("carta_circuito") or (cliente.get("carta_credito", {}).get("circuito", "") if not is_blocco_calendario else ""),
+        "carta_intestatario": data.get("carta_intestatario") or (cliente.get("carta_credito", {}).get("intestatario", "") if not is_blocco_calendario else ""),
+        "carta_numero": data.get("carta_numero") or (cliente.get("carta_credito", {}).get("numero", "") if not is_blocco_calendario else ""),
+        "carta_scadenza_mese": data.get("carta_scadenza_mese") or (cliente.get("carta_credito", {}).get("scadenza_mese", "") if not is_blocco_calendario else ""),
+        "carta_scadenza_anno": data.get("carta_scadenza_anno") or (cliente.get("carta_credito", {}).get("scadenza_anno", "") if not is_blocco_calendario else ""),
         # Note admin e km tipo
         "note_admin": data.get("note_admin", ""),
         "km_tipo": data.get("km_inclusi", "standard"),  # 'standard' o 'illimitati'
@@ -2235,6 +2241,21 @@ async def genera_contratto(prenotazione_id: str, admin: dict = Depends(get_admin
         raise HTTPException(status_code=404, detail="Cliente non trovato")
     
     contratto_id = str(uuid.uuid4())
+    
+    # Load client's credit card data into the booking
+    carta_credito = cliente.get("carta_credito", {})
+    if carta_credito and any(carta_credito.values()):
+        carta_update = {
+            "carta_circuito": carta_credito.get("circuito", ""),
+            "carta_intestatario": carta_credito.get("intestatario", ""),
+            "carta_numero": carta_credito.get("numero", ""),
+            "carta_scadenza_mese": carta_credito.get("scadenza_mese", ""),
+            "carta_scadenza_anno": carta_credito.get("scadenza_anno", "")
+        }
+        await db.prenotazioni.update_one(
+            {"id": prenotazione_id},
+            {"$set": carta_update}
+        )
     
     # Create contract record
     contratto_doc = {
