@@ -119,7 +119,44 @@ export default function ContrattoStampaPage() {
     fetchData();
   }, [id, token, navigate]);
 
-  const handlePrint = () => window.print();
+  const handlePrint = async () => {
+    // Generate clean PDF and open for printing (no browser headers/footers)
+    const contractElement = contractRef.current;
+    if (!contractElement) return;
+    
+    try {
+      const pages = contractElement.querySelectorAll('[data-page]');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210;
+      const pageHeight = 297;
+      
+      for (let i = 0; i < pages.length; i++) {
+        if (i > 0) pdf.addPage();
+        const canvas = await html2canvas(pages[i], {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+      }
+      
+      // Open PDF in new window and trigger print
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const printWindow = window.open(pdfUrl, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          setTimeout(() => printWindow.print(), 500);
+        };
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+      // Fallback to direct print
+      window.print();
+    }
+  };
 
   const handleDownloadPDF = async () => {
     if (!contractRef.current) return;
@@ -628,7 +665,7 @@ export default function ContrattoStampaPage() {
 
           {/* I. PARTI DEL CONTRATTO */}
           <div className="border border-black mb-2">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+            <div className="px-2 py-1 text-sm font-bold border-b border-black bg-gray-100">
               I. PARTI DEL CONTRATTO
             </div>
             <div className="grid grid-cols-2">
@@ -690,7 +727,7 @@ export default function ContrattoStampaPage() {
 
           {/* II. CONDUCENTI AUTORIZZATI */}
           <div className="border border-black mb-2">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+            <div className="px-2 py-1 text-sm font-bold border-b border-black bg-gray-100">
               II. CONDUCENTI AUTORIZZATI
             </div>
             <div className="p-2">
@@ -798,7 +835,7 @@ export default function ContrattoStampaPage() {
 
           {/* III. VEICOLO OGGETTO DEL NOLEGGIO */}
           <div className="border border-black mb-2">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+            <div className="px-2 py-1 text-sm font-bold border-b border-black bg-gray-100">
               III. VEICOLO OGGETTO DEL NOLEGGIO
             </div>
             <div className="grid grid-cols-3 gap-0">
@@ -883,7 +920,7 @@ export default function ContrattoStampaPage() {
 
           {/* IV. DURATA & CHILOMETRAGGIO */}
           <div className="border border-black mb-2">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+            <div className="px-2 py-1 text-sm font-bold border-b border-black bg-gray-100">
               IV. DURATA &amp; CHILOMETRAGGIO
             </div>
             <div className="grid grid-cols-3 text-xs">
@@ -916,7 +953,7 @@ export default function ContrattoStampaPage() {
 
           {/* V. CORRISPETTIVO & SERVIZI */}
           <div className="border border-black mb-2">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+            <div className="px-2 py-1 text-sm font-bold border-b border-black bg-gray-100">
               V. CORRISPETTIVO &amp; SERVIZI
             </div>
             
@@ -1103,7 +1140,7 @@ export default function ContrattoStampaPage() {
 
           {/* V-BIS. RIENTRO & ADDEBITI */}
           <div className="border border-black mb-2">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+            <div className="px-2 py-1 text-sm font-bold border-b border-black bg-gray-100">
               V-BIS. RIENTRO &amp; ADDEBITI
             </div>
             <div className="grid grid-cols-2 text-xs">
@@ -1201,7 +1238,7 @@ export default function ContrattoStampaPage() {
 
           {/* VI. GARANZIE & PAGAMENTO */}
           <div className="border border-black mb-2">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+            <div className="px-2 py-1 text-sm font-bold border-b border-black bg-gray-100">
               VI. GARANZIE &amp; PAGAMENTO
             </div>
             <div className="grid grid-cols-3 text-xs">
@@ -1307,7 +1344,7 @@ export default function ContrattoStampaPage() {
 
           {/* VII. DICHIARAZIONI E SOTTOSCRIZIONI */}
           <div className="border border-black mt-3">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+            <div className="px-2 py-1 text-sm font-bold border-b border-black bg-gray-100">
               VII. DICHIARAZIONI E SOTTOSCRIZIONI
             </div>
             <div className="p-1.5 text-xs">
@@ -1327,7 +1364,7 @@ export default function ContrattoStampaPage() {
           </div>
 
           <div className="border border-black">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
+            <div className="px-2 py-1 text-sm font-bold border-b border-black bg-gray-100">
               VIII. CONDIZIONI GENERALI DI NOLEGGIO
             </div>
             <div className="p-2 leading-snug" style={{ fontSize: '6pt', lineHeight: '1.25' }}>
@@ -1365,7 +1402,7 @@ export default function ContrattoStampaPage() {
 
           {/* FIRME */}
           <div className="border border-black mt-1">
-            <div className="bg-black text-white px-2 py-0.5 text-[9px] font-bold">FIRME</div>
+            <div className="px-2 py-0.5 text-[9px] font-bold border-b border-black bg-gray-100">FIRME</div>
             <div className="grid grid-cols-2 gap-0">
               <div className="p-1 border-r border-black text-center">
                 <p className="font-bold text-[9px] mb-1">IL LOCATORE / NOLEGGIATORE</p>
