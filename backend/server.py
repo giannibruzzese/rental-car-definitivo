@@ -1715,7 +1715,7 @@ async def admin_update_prenotazione(prenotazione_id: str, data: dict, admin: dic
     
     allowed_fields = [
         # Servizi e franchigie
-        "servizi_supplementari", "franchigie_selezionate", 
+        "servizi_supplementari", "franchigie_selezionate", "conducenti_aggiuntivi",
         # Luoghi
         "luogo_ritiro", "indirizzo_ritiro", "luogo_riconsegna", "indirizzo_riconsegna",
         # Date e orari

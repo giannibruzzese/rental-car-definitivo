@@ -66,6 +66,7 @@ export default function ContrattoStampaPage() {
   const [editedData, setEditedData] = useState({});
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [veicoli, setVeicoli] = useState([]);
+  const [serviziDisponibili, setServiziDisponibili] = useState([]);
   const contractRef = useRef(null);
   
   // Dati agenzia FISSI per il contratto (come da richiesta)
@@ -108,6 +109,9 @@ export default function ContrattoStampaPage() {
         // Fetch veicoli disponibili per il dropdown
         const veicoliRes = await axios.get(`${API}/api/vehicles`);
         setVeicoli(veicoliRes.data || []);
+        
+        const serviziRes = await axios.get(`${API}/api/servizi-supplementari`);
+        setServiziDisponibili(serviziRes.data || []);
         
       } catch (error) {
         console.error('Errore:', error);
@@ -290,6 +294,7 @@ export default function ContrattoStampaPage() {
         veicolo_targa: editedData.veicolo_targa,
         tariffa_base: editedData.tariffa_base,
         totale_servizi: editedData.totale_servizi,
+        servizi_supplementari: editedData.servizi_supplementari,
         totale_franchigie: editedData.totale_franchigie,
         acconto: editedData.acconto,
         deposito_cauzionale: editedData.deposito_cauzionale,
@@ -806,28 +811,63 @@ export default function ContrattoStampaPage() {
                     <th className="border border-black p-1 text-left">Nascita (luogo, data)</th>
                     <th className="border border-black p-1 text-left">Patente</th>
                     <th className="border border-black p-1 text-left">Contatti</th>
+                    {isEditing && <th className="border border-black p-1 w-8"></th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {p.conducenti_aggiuntivi?.map((c, i) => (
+                  {(p.conducenti_aggiuntivi || []).map((c, i) => (
                     <tr key={i}>
-                      <td className="border border-black p-1">{c.nome} {c.cognome}</td>
-                      <td className="border border-black p-1">{c.codice_fiscale}</td>
-                      <td className="border border-black p-1">{c.luogo_nascita}, {formatDateIT(c.data_nascita)}</td>
-                      <td className="border border-black p-1">{c.patente_numero} ({c.patente_categoria})</td>
-                      <td className="border border-black p-1">{c.cellulare}</td>
+                      {isEditing ? (
+                        <>
+                          <td className="border border-black p-0.5">
+                            <div className="flex gap-0.5">
+                              <Input value={c.nome || ''} onChange={e => { const arr = [...(p.conducenti_aggiuntivi||[])]; arr[i] = {...arr[i], nome: e.target.value}; updateField('conducenti_aggiuntivi', arr); }} className="h-5 text-xs" placeholder="Nome" />
+                              <Input value={c.cognome || ''} onChange={e => { const arr = [...(p.conducenti_aggiuntivi||[])]; arr[i] = {...arr[i], cognome: e.target.value}; updateField('conducenti_aggiuntivi', arr); }} className="h-5 text-xs" placeholder="Cognome" />
+                            </div>
+                          </td>
+                          <td className="border border-black p-0.5">
+                            <Input value={c.codice_fiscale || ''} onChange={e => { const arr = [...(p.conducenti_aggiuntivi||[])]; arr[i] = {...arr[i], codice_fiscale: e.target.value.toUpperCase()}; updateField('conducenti_aggiuntivi', arr); }} className="h-5 text-xs" placeholder="Cod. Fiscale" />
+                          </td>
+                          <td className="border border-black p-0.5">
+                            <div className="flex gap-0.5">
+                              <Input value={c.luogo_nascita || ''} onChange={e => { const arr = [...(p.conducenti_aggiuntivi||[])]; arr[i] = {...arr[i], luogo_nascita: e.target.value}; updateField('conducenti_aggiuntivi', arr); }} className="h-5 text-xs" placeholder="Luogo" />
+                              <Input type="date" value={c.data_nascita || ''} onChange={e => { const arr = [...(p.conducenti_aggiuntivi||[])]; arr[i] = {...arr[i], data_nascita: e.target.value}; updateField('conducenti_aggiuntivi', arr); }} className="h-5 text-xs w-24" />
+                            </div>
+                          </td>
+                          <td className="border border-black p-0.5">
+                            <div className="flex gap-0.5">
+                              <Input value={c.patente_numero || ''} onChange={e => { const arr = [...(p.conducenti_aggiuntivi||[])]; arr[i] = {...arr[i], patente_numero: e.target.value}; updateField('conducenti_aggiuntivi', arr); }} className="h-5 text-xs" placeholder="N. Patente" />
+                              <Input value={c.patente_categoria || ''} onChange={e => { const arr = [...(p.conducenti_aggiuntivi||[])]; arr[i] = {...arr[i], patente_categoria: e.target.value.toUpperCase()}; updateField('conducenti_aggiuntivi', arr); }} className="h-5 text-xs w-10" placeholder="Cat" />
+                            </div>
+                          </td>
+                          <td className="border border-black p-0.5">
+                            <Input value={c.cellulare || ''} onChange={e => { const arr = [...(p.conducenti_aggiuntivi||[])]; arr[i] = {...arr[i], cellulare: e.target.value}; updateField('conducenti_aggiuntivi', arr); }} className="h-5 text-xs" placeholder="Cellulare" />
+                          </td>
+                          <td className="border border-black p-0.5 text-center">
+                            <button onClick={() => { const arr = (p.conducenti_aggiuntivi||[]).filter((_,idx) => idx !== i); updateField('conducenti_aggiuntivi', arr); }} className="text-red-500 text-xs">✕</button>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="border border-black p-1">{c.nome} {c.cognome}</td>
+                          <td className="border border-black p-1">{c.codice_fiscale}</td>
+                          <td className="border border-black p-1">{c.luogo_nascita}, {formatDateIT(c.data_nascita)}</td>
+                          <td className="border border-black p-1">{c.patente_numero} ({c.patente_categoria})</td>
+                          <td className="border border-black p-1">{c.cellulare}</td>
+                        </>
+                      )}
                     </tr>
                   ))}
-                  {/* Righe vuote per compilazione */}
-                  {[...Array(1 - (p.conducenti_aggiuntivi?.length || 0))].map((_, i) => (
-                    <tr key={`empty-${i}`}>
-                      <td className="border border-black p-1"></td>
-                      <td className="border border-black p-1"></td>
-                      <td className="border border-black p-1"></td>
-                      <td className="border border-black p-1"></td>
-                      <td className="border border-black p-1"></td>
+                  {isEditing && (
+                    <tr>
+                      <td colSpan="6" className="border border-black p-1 text-center">
+                        <button onClick={() => { const arr = [...(p.conducenti_aggiuntivi||[]), {nome:'',cognome:'',codice_fiscale:'',luogo_nascita:'',data_nascita:'',patente_numero:'',patente_categoria:'B',cellulare:''}]; updateField('conducenti_aggiuntivi', arr); }} className="text-blue-600 hover:text-blue-800 text-xs font-medium">+ Aggiungi conducente</button>
+                      </td>
                     </tr>
-                  ))}
+                  )}
+                  {!isEditing && (p.conducenti_aggiuntivi?.length || 0) === 0 && (
+                    <tr><td colSpan="5" className="border border-black p-1"></td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -967,22 +1007,74 @@ export default function ContrattoStampaPage() {
                     <th className="border border-black p-1 text-center w-16">Q.TÀ</th>
                     <th className="border border-black p-1 text-center w-16">UNITÀ</th>
                     <th className="border border-black p-1 text-right w-20">TOTALE</th>
+                    {isEditing && <th className="border border-black p-1 w-8"></th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {p.servizi_supplementari?.length > 0 ? (
-                    p.servizi_supplementari.map((s, i) => (
-                      <tr key={i}>
-                        <td className="border border-black p-1">{s.nome}</td>
-                        <td className="border border-black p-1 text-center">{s.quantita}</td>
-                        <td className="border border-black p-1 text-center">{s.unita}</td>
-                        <td className="border border-black p-1 text-right">€{s.totale?.toFixed(2)}</td>
-                      </tr>
-                    ))
-                  ) : (
+                  {(p.servizi_supplementari || []).map((s, i) => (
+                    <tr key={i}>
+                      <td className="border border-black p-1">{s.nome}</td>
+                      <td className="border border-black p-1 text-center">
+                        {isEditing ? (
+                          <Input type="number" min="1" value={s.quantita || 1} onChange={e => {
+                            const arr = [...(p.servizi_supplementari||[])];
+                            const qty = parseInt(e.target.value) || 1;
+                            arr[i] = {...arr[i], quantita: qty, totale: qty * (arr[i].prezzo_unitario || 0)};
+                            updateField('servizi_supplementari', arr);
+                            updateField('totale_servizi', arr.reduce((sum, sv) => sum + (sv.totale || 0), 0));
+                          }} className="h-5 text-xs w-12 text-center" />
+                        ) : s.quantita}
+                      </td>
+                      <td className="border border-black p-1 text-center">{s.unita}</td>
+                      <td className="border border-black p-1 text-right">€{(s.totale || 0).toFixed(2)}</td>
+                      {isEditing && (
+                        <td className="border border-black p-0.5 text-center">
+                          <button onClick={() => {
+                            const arr = (p.servizi_supplementari||[]).filter((_,idx) => idx !== i);
+                            updateField('servizi_supplementari', arr);
+                            updateField('totale_servizi', arr.reduce((sum, sv) => sum + (sv.totale || 0), 0));
+                          }} className="text-red-500 text-xs">✕</button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                  {isEditing && (
+                    <tr>
+                      <td colSpan="5" className="border border-black p-1">
+                        <Select onValueChange={v => {
+                          const servizio = serviziDisponibili.find(s => s.id === v);
+                          if (servizio) {
+                            const durata = p.durata_giorni || 1;
+                            const prezzo = servizio.prezzo || 0;
+                            const unita = servizio.unita || 'giorno';
+                            const qty = unita === 'noleggio' ? 1 : durata;
+                            const newServ = {
+                              id: servizio.id,
+                              nome: servizio.nome,
+                              prezzo_unitario: prezzo,
+                              quantita: qty,
+                              unita: unita,
+                              totale: prezzo * qty
+                            };
+                            const arr = [...(p.servizi_supplementari||[]), newServ];
+                            updateField('servizi_supplementari', arr);
+                            updateField('totale_servizi', arr.reduce((sum, sv) => sum + (sv.totale || 0), 0));
+                          }
+                        }}>
+                          <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="+ Aggiungi servizio..." /></SelectTrigger>
+                          <SelectContent>
+                            {serviziDisponibili.map(s => (
+                              <SelectItem key={s.id} value={s.id}>{s.nome} - €{(s.prezzo || 0).toFixed(2)}/{s.unita || 'giorno'}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                    </tr>
+                  )}
+                  {!isEditing && (p.servizi_supplementari?.length || 0) === 0 && (
                     <tr>
                       <td colSpan="4" className="border border-black p-0.5 text-center text-gray-400 italic">
-                        Nessun servizio supplementare associato a questo noleggio.
+                        Nessun servizio supplementare.
                       </td>
                     </tr>
                   )}
@@ -1086,13 +1178,7 @@ export default function ContrattoStampaPage() {
                     </tr>
                     <tr>
                       <td className="py-0.5">Servizi supplementari:</td>
-                      <td className="text-right">
-                        {isEditing ? (
-                          <Input type="number" step="0.01" value={p.totale_servizi || ''} onChange={e => updateField('totale_servizi', parseFloat(e.target.value))} className="h-5 text-xs w-20 text-right" />
-                        ) : (
-                          <>{(p.totale_servizi || 0).toFixed(2)} €</>
-                        )}
-                      </td>
+                      <td className="text-right">{(p.totale_servizi || 0).toFixed(2)} €</td>
                     </tr>
                     <tr><td className="py-0.5">Check-in:</td><td className="text-right">0,00 €</td></tr>
                     <tr><td className="py-0.5">Check-out:</td><td className="text-right">0,00 €</td></tr>
