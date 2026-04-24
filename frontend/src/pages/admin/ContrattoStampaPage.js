@@ -31,28 +31,24 @@ const formatDateIT = (dateStr) => {
 
 const VeicoloSchemaCompleto = () => (
   <div className="vehicle-schema bg-white">
-    <div className="grid grid-cols-2 gap-4">
-      
-      {/* VISTA LATERALE / FRONTALE */}
-      <div className="border border-dashed border-gray-300 rounded-lg p-2 bg-white">
+    <div className="grid grid-cols-2 gap-1">
+      <div className="border border-dashed border-gray-300 rounded p-1 bg-white">
         <img 
           src="/images/vista_laterale.png"
           alt="Vista laterale / frontale"
           className="w-full h-auto"
-          style={{ maxHeight: '280px', objectFit: 'contain' }}
+          style={{ maxHeight: '130px', objectFit: 'contain' }}
         />
-        <div className="text-center text-xs text-gray-500 mt-1">Vista laterale / frontale</div>
+        <div className="text-center text-[7px] text-gray-500">Vista laterale / frontale</div>
       </div>
-
-      {/* VISTA DALL'ALTO / INTERNI */}
-      <div className="border border-dashed border-gray-300 rounded-lg p-2 bg-white">
+      <div className="border border-dashed border-gray-300 rounded p-1 bg-white">
         <img 
           src="/images/vista_alto.png"
           alt="Vista dall'alto / interni"
           className="w-full h-auto"
-          style={{ maxHeight: '280px', objectFit: 'contain' }}
+          style={{ maxHeight: '130px', objectFit: 'contain' }}
         />
-        <div className="text-center text-xs text-gray-500 mt-1">Vista dall'alto / interni</div>
+        <div className="text-center text-[7px] text-gray-500">Vista dall'alto / interni</div>
       </div>
     </div>
   </div>
@@ -555,14 +551,14 @@ export default function ContrattoStampaPage() {
       <div ref={contractRef} className="max-w-[210mm] mx-auto bg-white print:max-w-none print:mx-0 shadow-lg print:shadow-none">
         
         {/* ========== PAGINA 1/4 ========== */}
-        <div data-page="1" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
+        <div data-page="1" className="p-5 print:p-4" style={{ pageBreakAfter: 'always' }}>
           
           {/* HEADER */}
-          <div className="border-b-2 border-black pb-3 mb-4">
+          <div className="border-b-2 border-black pb-1 mb-2">
             <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-2xl font-bold">{AGENCY.nome}</h1>
-                <p className="text-xs mt-1">
+                <h1 className="text-xl font-bold">{AGENCY.nome}</h1>
+                <p className="text-[8px] mt-0.5">
                   {AGENCY.indirizzo} - {AGENCY.cap} {AGENCY.comune} ({AGENCY.provincia}) - {AGENCY.regione}
                 </p>
                 <p className="text-xs">
@@ -580,7 +576,7 @@ export default function ContrattoStampaPage() {
           </div>
 
           {/* RIGA DATI CONTRATTO */}
-          <div className="border border-black mb-4">
+          <div className="border border-black mb-1">
             <div className="text-xs font-bold bg-gray-200 px-2 py-1 border-b border-black">
               CONTRATTO DI NOLEGGIO
             </div>
@@ -631,7 +627,7 @@ export default function ContrattoStampaPage() {
           </div>
 
           {/* I. PARTI DEL CONTRATTO */}
-          <div className="border border-black mb-4">
+          <div className="border border-black mb-1">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               I. PARTI DEL CONTRATTO
             </div>
@@ -649,7 +645,7 @@ export default function ContrattoStampaPage() {
                 </div>
               </div>
               {/* Locatario */}
-              <div className="p-3">
+              <div className="p-1.5">
                 <div className="font-bold text-xs mb-2 bg-gray-100 -mx-3 -mt-3 px-3 py-1 border-b border-black">
                   Locatario / Cliente
                 </div>
@@ -693,11 +689,11 @@ export default function ContrattoStampaPage() {
           </div>
 
           {/* II. CONDUCENTI AUTORIZZATI */}
-          <div className="border border-black mb-4">
+          <div className="border border-black mb-1">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               II. CONDUCENTI AUTORIZZATI
             </div>
-            <div className="p-3">
+            <div className="p-1.5">
               <div className="font-bold text-xs mb-2">Conducente principale</div>
               <div className="grid grid-cols-4 gap-2 text-xs mb-3">
                 <div>
@@ -786,13 +782,13 @@ export default function ContrattoStampaPage() {
                     </tr>
                   ))}
                   {/* Righe vuote per compilazione */}
-                  {[...Array(3 - (p.conducenti_aggiuntivi?.length || 0))].map((_, i) => (
+                  {[...Array(1 - (p.conducenti_aggiuntivi?.length || 0))].map((_, i) => (
                     <tr key={`empty-${i}`}>
-                      <td className="border border-black p-3"></td>
-                      <td className="border border-black p-3"></td>
-                      <td className="border border-black p-3"></td>
-                      <td className="border border-black p-3"></td>
-                      <td className="border border-black p-3"></td>
+                      <td className="border border-black p-1"></td>
+                      <td className="border border-black p-1"></td>
+                      <td className="border border-black p-1"></td>
+                      <td className="border border-black p-1"></td>
+                      <td className="border border-black p-1"></td>
                     </tr>
                   ))}
                 </tbody>
@@ -801,17 +797,17 @@ export default function ContrattoStampaPage() {
           </div>
 
           {/* III. VEICOLO OGGETTO DEL NOLEGGIO */}
-          <div className="border border-black mb-4">
+          <div className="border border-black mb-1">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               III. VEICOLO OGGETTO DEL NOLEGGIO
             </div>
             <div className="grid grid-cols-3 gap-0">
               {/* Dati veicolo */}
-              <div className="p-3 border-r border-black">
+              <div className="p-1.5 border-r border-black">
                 <div className="text-xs space-y-2">
                   {/* DROPDOWN SELEZIONE VEICOLO - Solo in edit mode */}
                   {isEditing && (
-                    <div className="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
+                    <div className="mb-1 p-1 bg-blue-50 rounded border border-blue-200">
                       <div className="flex items-center gap-1 text-blue-700 font-medium mb-1">
                         <Car className="w-3 h-3" />
                         <span>Cambia Veicolo</span>
@@ -886,7 +882,7 @@ export default function ContrattoStampaPage() {
           </div>
 
           {/* IV. DURATA & CHILOMETRAGGIO */}
-          <div className="border border-black mb-4">
+          <div className="border border-black mb-1">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               IV. DURATA &amp; CHILOMETRAGGIO
             </div>
@@ -912,20 +908,20 @@ export default function ContrattoStampaPage() {
         </div>
 
         {/* ========== PAGINA 2/3 ========== */}
-        <div data-page="2" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
-          <div className="flex justify-between items-center border-b border-black pb-2 mb-3">
+        <div data-page="2" className="p-5 print:p-4" style={{ pageBreakAfter: 'always' }}>
+          <div className="flex justify-between items-center border-b border-black pb-1 mb-1">
             <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
             <span className="text-xs text-gray-500">Pag. 2/3</span>
           </div>
 
           {/* V. CORRISPETTIVO & SERVIZI */}
-          <div className="border border-black mb-4">
+          <div className="border border-black mb-1">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               V. CORRISPETTIVO &amp; SERVIZI
             </div>
             
             {/* Servizi supplementari */}
-            <div className="p-3 border-b border-black">
+            <div className="p-1.5 border-b border-black">
               <div className="font-bold text-xs mb-2">SERVIZI SUPPLEMENTARI</div>
               <table className="w-full text-xs border border-black">
                 <thead>
@@ -948,7 +944,7 @@ export default function ContrattoStampaPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="4" className="border border-black p-2 text-center text-gray-400 italic">
+                      <td colSpan="4" className="border border-black p-0.5 text-center text-gray-400 italic">
                         Nessun servizio supplementare associato a questo noleggio.
                       </td>
                     </tr>
@@ -959,7 +955,7 @@ export default function ContrattoStampaPage() {
 
             {/* Franchigie e Riepilogo */}
             <div className="grid grid-cols-2">
-              <div className="p-3 border-r border-black">
+              <div className="p-1.5 border-r border-black">
                 <div className="font-bold text-xs mb-2">COPERTURE ASSICURATIVE</div>
                 <table className="w-full text-xs border border-black">
                   <thead>
@@ -1015,7 +1011,7 @@ export default function ContrattoStampaPage() {
                   * In caso di sinistro, il conduttore è tenuto al pagamento delle franchigie sopra indicate.
                 </p>
               </div>
-              <div className="p-3">
+              <div className="p-1.5">
                 <div className="font-bold text-xs mb-2">RIEPILOGO ECONOMICO</div>
                 <table className="w-full text-xs">
                   <tbody>
@@ -1106,13 +1102,13 @@ export default function ContrattoStampaPage() {
           </div>
 
           {/* V-BIS. RIENTRO & ADDEBITI */}
-          <div className="border border-black mb-4">
+          <div className="border border-black mb-1">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               V-BIS. RIENTRO &amp; ADDEBITI
             </div>
             <div className="grid grid-cols-2 text-xs">
-              <div className="p-3 border-r border-black">
-                <div className="font-bold mb-2">DATI RIENTRO</div>
+              <div className="p-1.5 border-r border-black">
+                <div className="font-bold mb-0.5">DATI RIENTRO</div>
                 <div className="space-y-1">
                   {isEditing ? (
                     <>
@@ -1158,8 +1154,8 @@ export default function ContrattoStampaPage() {
                   )}
                 </div>
               </div>
-              <div className="p-3">
-                <div className="font-bold mb-2">ADDEBITI AL RIENTRO</div>
+              <div className="p-1.5">
+                <div className="font-bold mb-0.5">ADDEBITI AL RIENTRO</div>
                 <table className="w-full text-xs">
                   <tbody>
                     {[
@@ -1204,14 +1200,14 @@ export default function ContrattoStampaPage() {
           </div>
 
           {/* VI. GARANZIE & PAGAMENTO */}
-          <div className="border border-black mb-3">
+          <div className="border border-black mb-1">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               VI. GARANZIE &amp; PAGAMENTO
             </div>
             <div className="grid grid-cols-3 text-xs">
               {/* Garante */}
-              <div className="p-3 border-r border-black">
-                <div className="font-bold mb-2">GARANTE</div>
+              <div className="p-1.5 border-r border-black">
+                <div className="font-bold mb-0.5">GARANTE</div>
                 <div className="space-y-2">
                   {isEditing ? (
                     <>
@@ -1238,8 +1234,8 @@ export default function ContrattoStampaPage() {
                 </div>
               </div>
               {/* Carta di credito - CAMPI EDITABILI */}
-              <div className="p-3 border-r border-black bg-yellow-50">
-                <div className="font-bold mb-2">CARTA DI CREDITO</div>
+              <div className="p-1.5 border-r border-black bg-yellow-50">
+                <div className="font-bold mb-0.5">CARTA DI CREDITO</div>
                 <div className="space-y-2">
                   {isEditing ? (
                     <>
@@ -1273,8 +1269,8 @@ export default function ContrattoStampaPage() {
                 </div>
               </div>
               {/* Pagamento */}
-              <div className="p-3">
-                <div className="font-bold mb-2">PAGAMENTO</div>
+              <div className="p-1.5">
+                <div className="font-bold mb-0.5">PAGAMENTO</div>
                 <div className="space-y-2">
                   {isEditing ? (
                     <>
@@ -1314,7 +1310,7 @@ export default function ContrattoStampaPage() {
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               VII. DICHIARAZIONI E SOTTOSCRIZIONI
             </div>
-            <div className="p-3 text-xs">
+            <div className="p-1.5 text-xs">
               <p className="leading-relaxed">Il sottoscritto locatario dichiara di aver letto attentamente e di accettare integralmente le condizioni generali di noleggio riportate nel presente contratto, nonche' ogni clausola ivi contenuta.</p>
               <div className="mt-3 flex justify-between">
                 <div><span className="text-gray-600">Luogo e data: </span>{p.luogo_ritiro || 'Soverato'}, {formatDateIT(p.data_ritiro)}</div>
@@ -1324,8 +1320,8 @@ export default function ContrattoStampaPage() {
         </div>
 
         {/* ========== PAGINA 3/3 - CONDIZIONI GENERALI + FIRME ========== */}
-        <div data-page="3" className="p-8 print:p-6" style={{ minHeight: '297mm' }}>
-          <div className="flex justify-between items-center border-b border-black pb-2 mb-3">
+        <div data-page="3" className="p-5 print:p-4">
+          <div className="flex justify-between items-center border-b border-black pb-1 mb-1">
             <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
             <span className="text-xs text-gray-500">Pag. 3/3</span>
           </div>
@@ -1334,7 +1330,7 @@ export default function ContrattoStampaPage() {
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               VIII. CONDIZIONI GENERALI DI NOLEGGIO
             </div>
-            <div className="p-2 leading-snug" style={{ fontSize: '6pt', lineHeight: '1.25' }}>
+            <div className="p-1.5 leading-snug" style={{ fontSize: '5.5pt', lineHeight: '1.2' }}>
               <p className="mb-1"><strong>1.</strong> La società RE.LE.CO. Group SRL in seguito definita Locatrice, concede in noleggio alla persona che sottoscrive il presente contratto, in nome proprio ovvero in qualità di legale rappresentate della società indicata, in seguito definita Conduttore, il veicolo descritto nel contratto stesso.</p>
               
               <p className="mb-1"><strong>2.</strong> Il Conduttore dichiara che il veicolo, al momento della presa in consegna, si trova in buone condizioni di meccanica e di carrozzeria. Pertanto si obbliga a riconsegnarlo nello stesso stato in cui l'ha ricevuto, salvo il normale deterioramento dovuto all'uso, segnalando per iscritto alla Locatrice gli eventuali danni o anomalie.</p>
@@ -1368,47 +1364,42 @@ export default function ContrattoStampaPage() {
           </div>
 
           {/* FIRME */}
-          <div className="border border-black mt-3">
-            <div className="bg-black text-white px-2 py-0.5 text-xs font-bold">
-              FIRME
-            </div>
+          <div className="border border-black mt-1">
+            <div className="bg-black text-white px-2 py-0.5 text-[9px] font-bold">FIRME</div>
             <div className="grid grid-cols-2 gap-0">
-              <div className="p-3 border-r border-black text-center">
-                <p className="font-bold text-xs mb-2">IL LOCATORE / NOLEGGIATORE</p>
-                <div className="border-b-2 border-black h-14 mx-6 mb-1"></div>
-                <p className="text-[9px]">Firma</p>
-                <p className="text-[8px] text-gray-500 mt-1">{AGENCY.nome}</p>
+              <div className="p-1 border-r border-black text-center">
+                <p className="font-bold text-[9px] mb-1">IL LOCATORE / NOLEGGIATORE</p>
+                <div className="border-b-2 border-black h-8 mx-4"></div>
+                <p className="text-[7px]">Firma - {AGENCY.nome}</p>
               </div>
-              <div className="p-3 text-center">
-                <p className="font-bold text-xs mb-2">IL LOCATARIO / CLIENTE</p>
-                <div className="border-b-2 border-black h-14 mx-6 mb-1"></div>
-                <p className="text-[9px]">Firma</p>
-                <p className="text-[8px] text-gray-500 mt-1">{cliente?.nome} {cliente?.cognome}</p>
+              <div className="p-1 text-center">
+                <p className="font-bold text-[9px] mb-1">IL LOCATARIO / CLIENTE</p>
+                <div className="border-b-2 border-black h-8 mx-4"></div>
+                <p className="text-[7px]">Firma - {cliente?.nome} {cliente?.cognome}</p>
               </div>
             </div>
           </div>
 
           {/* Clausole vessatorie */}
-          <div className="mt-2 border border-black p-2">
-            <p className="text-[7pt] mb-2">
+          <div className="mt-1 border border-black p-1">
+            <p className="text-[6pt] mb-1">
               Firma apposta ai sensi e per gli effetti degli artt. 1341 e 1342 c.c. con specifica 
-              approvazione delle clausole eventualmente indicate nelle condizioni generali di noleggio
-              (art. 7, art. 10, art. 11, art. 14):
+              approvazione delle clausole (art. 7, art. 10, art. 11, art. 14):
             </p>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
-                <div className="border-b-2 border-black h-10 mx-8 mb-1"></div>
-                <p className="text-[8px]">Firma Locatore</p>
+                <div className="border-b-2 border-black h-6 mx-6"></div>
+                <p className="text-[7px]">Firma Locatore</p>
               </div>
               <div className="text-center">
-                <div className="border-b-2 border-black h-10 mx-8 mb-1"></div>
-                <p className="text-[8px]">Firma Locatario</p>
+                <div className="border-b-2 border-black h-6 mx-6"></div>
+                <p className="text-[7px]">Firma Locatario</p>
               </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="mt-3 pt-2 border-t border-black text-center text-[8px] text-gray-500">
+          <div className="mt-1 pt-1 border-t border-black text-center text-[7px] text-gray-500">
             <p>{AGENCY.nome} - {AGENCY.indirizzo}, {AGENCY.cap} {AGENCY.comune} ({AGENCY.provincia})</p>
             <p>P.IVA: {AGENCY.piva} - Tel: {AGENCY.telefono} - Email: {AGENCY.email}</p>
           </div>
@@ -1420,7 +1411,12 @@ export default function ContrattoStampaPage() {
         @media print {
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print\\:hidden { display: none !important; }
-          @page { size: A4; margin: 0; }
+          @page { size: A4; margin: 8mm; }
+          [data-page] { padding: 6mm !important; font-size: 9px !important; }
+          [data-page] .text-xs { font-size: 8px !important; }
+          [data-page] .text-sm { font-size: 9px !important; }
+          [data-page] table { font-size: 8px !important; }
+          [data-page] h1 { font-size: 16px !important; }
         }
       `}</style>
     </div>
