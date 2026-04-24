@@ -574,7 +574,7 @@ export default function ContrattoStampaPage() {
               </div>
               <div className="text-right">
                 <h2 className="text-xl font-bold">CONTRATTO</h2>
-                <p className="text-xs text-gray-500">Pag. 1/4</p>
+                <p className="text-xs text-gray-500">Pag. 1/3</p>
               </div>
             </div>
           </div>
@@ -885,115 +885,37 @@ export default function ContrattoStampaPage() {
             </div>
           </div>
 
-        </div>
-
-        {/* ========== PAGINA 2/4 ========== */}
-        <div data-page="2" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
-          {/* Header pagina 2 */}
-          <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
-            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 2/4</span>
-          </div>
-
           {/* IV. DURATA & CHILOMETRAGGIO */}
           <div className="border border-black mb-4">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
               IV. DURATA &amp; CHILOMETRAGGIO
             </div>
             <div className="grid grid-cols-3 text-xs">
-              <div className="border-r border-black p-3">
-                <div className="font-bold mb-2">Periodo di noleggio</div>
-                <p>
-                  <span className="text-gray-600">Durata:</span>{' '}
-                  {isEditing ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Input type="number" min="1" value={p.durata_giorni} onChange={e => handleDurataChange(e.target.value)} className="h-5 text-xs w-12 inline" />
-                      <span>giorni</span>
-                    </span>
-                  ) : (
-                    <strong>{p.durata_giorni} giorni</strong>
-                  )}
-                </p>
-                <p>
-                  <span className="text-gray-600">Dal:</span>{' '}
-                  {isEditing ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Input type="date" value={p.data_ritiro} onChange={e => handleDataRitiroChange(e.target.value)} className="h-5 text-xs w-28 inline" />
-                      <span>ore</span>
-                      <Input type="time" value={p.ora_ritiro} onChange={e => updateField('ora_ritiro', e.target.value)} className="h-5 text-xs w-16 inline" />
-                    </span>
-                  ) : (
-                    <span>{formatDateIT(p.data_ritiro)} ore {p.ora_ritiro}</span>
-                  )}
-                </p>
-                <p>
-                  <span className="text-gray-600">Al:</span>{' '}
-                  {isEditing ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Input type="date" value={p.data_riconsegna} onChange={e => updateField('data_riconsegna', e.target.value)} className="h-5 text-xs w-28 inline" />
-                      <span>ore</span>
-                      <Input type="time" value={p.ora_riconsegna} onChange={e => updateField('ora_riconsegna', e.target.value)} className="h-5 text-xs w-16 inline" />
-                    </span>
-                  ) : (
-                    <span>{formatDateIT(p.data_riconsegna)} ore {p.ora_riconsegna}</span>
-                  )}
-                </p>
+              <div className="border-r border-black p-2">
+                <div className="font-bold mb-1">Periodo di noleggio</div>
+                <p><span className="text-gray-600">Durata:</span>{' '}{isEditing ? (<span className="inline-flex items-center gap-1"><Input type="number" min="1" value={p.durata_giorni} onChange={e => handleDurataChange(e.target.value)} className="h-5 text-xs w-12 inline" /><span>giorni</span></span>) : (<strong>{p.durata_giorni} giorni</strong>)}</p>
+                <p><span className="text-gray-600">Dal:</span>{' '}{isEditing ? (<span className="inline-flex items-center gap-1"><Input type="date" value={p.data_ritiro} onChange={e => handleDataRitiroChange(e.target.value)} className="h-5 text-xs w-28 inline" /><span>ore</span><Input type="time" value={p.ora_ritiro} onChange={e => updateField('ora_ritiro', e.target.value)} className="h-5 text-xs w-16 inline" /></span>) : (<span>{formatDateIT(p.data_ritiro)} ore {p.ora_ritiro}</span>)}</p>
+                <p><span className="text-gray-600">Al:</span>{' '}{isEditing ? (<span className="inline-flex items-center gap-1"><Input type="date" value={p.data_riconsegna} onChange={e => updateField('data_riconsegna', e.target.value)} className="h-5 text-xs w-28 inline" /><span>ore</span><Input type="time" value={p.ora_riconsegna} onChange={e => updateField('ora_riconsegna', e.target.value)} className="h-5 text-xs w-16 inline" /></span>) : (<span>{formatDateIT(p.data_riconsegna)} ore {p.ora_riconsegna}</span>)}</p>
               </div>
-              <div className="border-r border-black p-3">
-                <div className="font-bold mb-2">Chilometraggio</div>
-                <p>
-                  <span className="text-gray-600">Km inclusi:</span>{' '}
-                  {isEditing ? (
-                    <Select 
-                      value={p.km_tipo || 'standard'} 
-                      onValueChange={(v) => {
-                        updateField('km_tipo', v);
-                        if (v === 'illimitati') {
-                          updateField('km_inclusi_totali', 'ILLIMITATI');
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-6 text-xs w-32 inline-flex">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="illimitati">ILLIMITATI</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : null}
-                  {' '}
-                  {p.km_tipo === 'illimitati' || p.km_inclusi_totali === 'ILLIMITATI' ? (
-                    <strong className="text-green-700">KM ILLIMITATI</strong>
-                  ) : isEditing ? (
-                    <Input type="number" value={p.km_inclusi_totali || ''} onChange={e => updateField('km_inclusi_totali', parseInt(e.target.value))} className="h-5 text-xs w-20 inline" />
-                  ) : (
-                    <strong>{p.km_inclusi_totali} km</strong>
-                  )}
-                </p>
-                <p>
-                  <span className="text-gray-600">Prezzo km extra:</span>{' '}
-                  {p.km_tipo === 'illimitati' || p.km_inclusi_totali === 'ILLIMITATI' ? (
-                    <span className="text-green-700">N/A</span>
-                  ) : isEditing ? (
-                    <>€<Input type="number" step="0.01" value={p.prezzo_km_extra || ''} onChange={e => updateField('prezzo_km_extra', parseFloat(e.target.value))} className="h-5 text-xs w-16 inline" />/km</>
-                  ) : (
-                    <>€{p.prezzo_km_extra}/km</>
-                  )}
-                </p>
+              <div className="border-r border-black p-2">
+                <div className="font-bold mb-1">Chilometraggio</div>
+                <p><span className="text-gray-600">Km inclusi:</span>{' '}{isEditing ? (<Select value={p.km_tipo || 'standard'} onValueChange={(v) => { updateField('km_tipo', v); if (v === 'illimitati') updateField('km_inclusi_totali', 'ILLIMITATI'); }}><SelectTrigger className="h-6 text-xs w-32 inline-flex"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="standard">Standard</SelectItem><SelectItem value="illimitati">ILLIMITATI</SelectItem></SelectContent></Select>) : null}{' '}{p.km_tipo === 'illimitati' || p.km_inclusi_totali === 'ILLIMITATI' ? (<strong className="text-green-700">KM ILLIMITATI</strong>) : isEditing ? (<Input type="number" value={p.km_inclusi_totali || ''} onChange={e => updateField('km_inclusi_totali', parseInt(e.target.value))} className="h-5 text-xs w-20 inline" />) : (<strong>{p.km_inclusi_totali} km</strong>)}</p>
+                <p><span className="text-gray-600">Prezzo km extra:</span>{' '}{p.km_tipo === 'illimitati' || p.km_inclusi_totali === 'ILLIMITATI' ? (<span className="text-green-700">N/A</span>) : isEditing ? (<>€<Input type="number" step="0.01" value={p.prezzo_km_extra || ''} onChange={e => updateField('prezzo_km_extra', parseFloat(e.target.value))} className="h-5 text-xs w-16 inline" />/km</>) : (<>€{p.prezzo_km_extra}/km</>)}</p>
               </div>
-              <div className="p-3 bg-gray-50">
-                <div className="font-bold mb-2">Deposito &amp; acconti</div>
-                <p>
-                  <span className="text-gray-600">Acconto:</span>{' '}
-                  €{isEditing ? <Input type="number" step="0.01" value={p.acconto || ''} onChange={e => updateField('acconto', parseFloat(e.target.value))} className="h-5 text-xs w-20 inline" /> : (p.acconto || '_______')}
-                </p>
-                <p>
-                  <span className="text-gray-600">Deposito:</span>{' '}
-                  €{isEditing ? <Input type="number" step="0.01" value={p.deposito_cauzionale || ''} onChange={e => updateField('deposito_cauzionale', parseFloat(e.target.value))} className="h-5 text-xs w-20 inline" /> : p.deposito_cauzionale}
-                </p>
+              <div className="p-2 bg-gray-50">
+                <div className="font-bold mb-1">Deposito &amp; acconti</div>
+                <p><span className="text-gray-600">Acconto:</span>{' '}€{isEditing ? <Input type="number" step="0.01" value={p.acconto || ''} onChange={e => updateField('acconto', parseFloat(e.target.value))} className="h-5 text-xs w-20 inline" /> : (p.acconto || '_______')}</p>
+                <p><span className="text-gray-600">Deposito:</span>{' '}€{isEditing ? <Input type="number" step="0.01" value={p.deposito_cauzionale || ''} onChange={e => updateField('deposito_cauzionale', parseFloat(e.target.value))} className="h-5 text-xs w-20 inline" /> : p.deposito_cauzionale}</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* ========== PAGINA 2/3 ========== */}
+        <div data-page="2" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
+          <div className="flex justify-between items-center border-b border-black pb-2 mb-3">
+            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
+            <span className="text-xs text-gray-500">Pag. 2/3</span>
           </div>
 
           {/* V. CORRISPETTIVO & SERVIZI */}
@@ -1049,50 +971,18 @@ export default function ContrattoStampaPage() {
                   <tbody>
                     <tr>
                       <td className="border border-black p-1">
-                        {isEditing && (
-                          <input type="checkbox" checked={p.franchigia_kasko_inclusa !== false} onChange={e => updateField('franchigia_kasko_inclusa', e.target.checked)} className="w-3 h-3 mr-1" />
-                        )}
                         Attivazione CASCO con franchigia danni
                       </td>
                       <td className="border border-black p-1 text-right">
-                        {isEditing ? (
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            value={p.franchigia_kasko ?? 500} 
-                            onChange={e => {
-                              const val = parseFloat(e.target.value) || 0;
-                              updateField('franchigia_kasko', val);
-                            }} 
-                            className="h-5 text-xs w-20 text-right" 
-                          />
-                        ) : (
-                          <span className="font-semibold">€ {(p.franchigia_kasko ?? 500).toFixed(2)}</span>
-                        )}
+                        <span className="font-semibold">€ {(p.franchigia_kasko ?? 500).toFixed(2)}</span>
                       </td>
                     </tr>
                     <tr>
                       <td className="border border-black p-1">
-                        {isEditing && (
-                          <input type="checkbox" checked={p.franchigia_sinistro_inclusa !== false} onChange={e => updateField('franchigia_sinistro_inclusa', e.target.checked)} className="w-3 h-3 mr-1" />
-                        )}
                         Penalità per sinistro con responsabilità
                       </td>
                       <td className="border border-black p-1 text-right">
-                        {isEditing ? (
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            value={p.franchigia_sinistro ?? 250} 
-                            onChange={e => {
-                              const val = parseFloat(e.target.value) || 0;
-                              updateField('franchigia_sinistro', val);
-                            }} 
-                            className="h-5 text-xs w-20 text-right" 
-                          />
-                        ) : (
-                          <span className="font-semibold">€ {(p.franchigia_sinistro ?? 250).toFixed(2)}</span>
-                        )}
+                        <span className="font-semibold">€ {(p.franchigia_sinistro ?? 250).toFixed(2)}</span>
                       </td>
                     </tr>
                     <tr>
@@ -1313,246 +1203,10 @@ export default function ContrattoStampaPage() {
             </div>
           </div>
 
-          {/* VI. LUOGO CHECK IN & CHECK OUT */}
-          <div className="border border-black mb-4">
+          {/* VI. GARANZIE & PAGAMENTO */}
+          <div className="border border-black mb-3">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
-              VI. LUOGO CHECK IN &amp; CHECK OUT
-            </div>
-            <div className="grid grid-cols-2 text-xs">
-              <div className="p-3 border-r border-black">
-                <div className="font-bold text-green-700 mb-3">CHECK-IN (RITIRO VEICOLO)</div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 w-12">Data:</span>
-                    {isEditing ? (
-                      <Input type="date" value={p.contratto_check_in?.data || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), data: e.target.value})} className="h-6 text-xs flex-1" />
-                    ) : (
-                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{formatDateIT(p.contratto_check_in?.data) || ''}</span>
-                    )}
-                    <span className="text-gray-600 w-8">Ora:</span>
-                    {isEditing ? (
-                      <Input type="time" value={p.contratto_check_in?.ora || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), ora: e.target.value})} className="h-6 text-xs w-20" />
-                    ) : (
-                      <span className="border-b border-gray-400 w-16 min-h-[20px]">{p.contratto_check_in?.ora || ''}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 w-16">Luogo:</span>
-                    {isEditing ? (
-                      <Input value={p.contratto_check_in?.luogo || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), luogo: e.target.value})} className="h-6 text-xs flex-1" placeholder="Es: Sede Principale" />
-                    ) : (
-                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_in?.luogo || ''}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 w-16">Indirizzo:</span>
-                    {isEditing ? (
-                      <Input value={p.contratto_check_in?.indirizzo || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), indirizzo: e.target.value})} className="h-6 text-xs flex-1" />
-                    ) : (
-                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_in?.indirizzo || ''}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 w-16">Km uscita:</span>
-                    {isEditing ? (
-                      <Input type="number" value={p.contratto_check_in?.km_uscita || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), km_uscita: e.target.value})} className="h-6 text-xs w-24" />
-                    ) : (
-                      <span className="border-b border-gray-400 w-20 min-h-[20px]">{p.contratto_check_in?.km_uscita || ''}</span>
-                    )}
-                    <span className="text-gray-600 w-20">Carburante:</span>
-                    {isEditing ? (
-                      <Input type="number" min="0" max="8" value={p.contratto_check_in?.carburante || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), carburante: e.target.value})} className="h-6 text-xs w-12" />
-                    ) : (
-                      <span className="border-b border-gray-400 w-8 min-h-[20px]">{p.contratto_check_in?.carburante || ''}</span>
-                    )}
-                    <span>/ 8</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 w-16">Operatore:</span>
-                    {isEditing ? (
-                      <Input value={p.contratto_check_in?.operatore || ''} onChange={e => updateField('contratto_check_in', {...(p.contratto_check_in || {}), operatore: e.target.value})} className="h-6 text-xs flex-1" />
-                    ) : (
-                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_in?.operatore || ''}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="p-3">
-                <div className="font-bold text-red-700 mb-3">CHECK-OUT (RICONSEGNA VEICOLO)</div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 w-12">Data:</span>
-                    {isEditing ? (
-                      <Input type="date" value={p.contratto_check_out?.data || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), data: e.target.value})} className="h-6 text-xs flex-1" />
-                    ) : (
-                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{formatDateIT(p.contratto_check_out?.data) || ''}</span>
-                    )}
-                    <span className="text-gray-600 w-8">Ora:</span>
-                    {isEditing ? (
-                      <Input type="time" value={p.contratto_check_out?.ora || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), ora: e.target.value})} className="h-6 text-xs w-20" />
-                    ) : (
-                      <span className="border-b border-gray-400 w-16 min-h-[20px]">{p.contratto_check_out?.ora || ''}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 w-16">Luogo:</span>
-                    {isEditing ? (
-                      <Input value={p.contratto_check_out?.luogo || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), luogo: e.target.value})} className="h-6 text-xs flex-1" placeholder="Es: Sede Principale" />
-                    ) : (
-                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_out?.luogo || ''}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 w-16">Indirizzo:</span>
-                    {isEditing ? (
-                      <Input value={p.contratto_check_out?.indirizzo || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), indirizzo: e.target.value})} className="h-6 text-xs flex-1" />
-                    ) : (
-                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_out?.indirizzo || ''}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 w-16">Km entrata:</span>
-                    {isEditing ? (
-                      <Input type="number" value={p.contratto_check_out?.km_entrata || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), km_entrata: e.target.value})} className="h-6 text-xs w-24" />
-                    ) : (
-                      <span className="border-b border-gray-400 w-20 min-h-[20px]">{p.contratto_check_out?.km_entrata || ''}</span>
-                    )}
-                    <span className="text-gray-600 w-20">Carburante:</span>
-                    {isEditing ? (
-                      <Input type="number" min="0" max="8" value={p.contratto_check_out?.carburante || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), carburante: e.target.value})} className="h-6 text-xs w-12" />
-                    ) : (
-                      <span className="border-b border-gray-400 w-8 min-h-[20px]">{p.contratto_check_out?.carburante || ''}</span>
-                    )}
-                    <span>/ 8</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 w-16">Operatore:</span>
-                    {isEditing ? (
-                      <Input value={p.contratto_check_out?.operatore || ''} onChange={e => updateField('contratto_check_out', {...(p.contratto_check_out || {}), operatore: e.target.value})} className="h-6 text-xs flex-1" />
-                    ) : (
-                      <span className="border-b border-gray-400 flex-1 min-h-[20px]">{p.contratto_check_out?.operatore || ''}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ========== PAGINA 3/4 ========== */}
-        <div data-page="3" className="p-8 print:p-6" style={{ minHeight: '297mm', pageBreakAfter: 'always' }}>
-          <div className="flex justify-between items-center border-b border-black pb-2 mb-4">
-            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 3/4</span>
-          </div>
-
-          {/* VII. DANNI PREESISTENTI */}
-          <div className="border border-black mb-4">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
-              VII. DANNI PREESISTENTI
-            </div>
-            <div className="p-3">
-              <table className="w-full text-xs border border-black">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-black p-1 text-left w-20">Punto</th>
-                    <th className="border border-black p-1 text-left">Descrizione del danno</th>
-                    {isEditing && <th className="border border-black p-1 w-12">Azioni</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(p.danni_preesistenti || []).map((d, i) => (
-                    <tr key={i}>
-                      <td className="border border-black p-1">
-                        {isEditing ? (
-                          <Input 
-                            value={d.punto || ''} 
-                            onChange={e => {
-                              const newDanni = [...(p.danni_preesistenti || [])];
-                              newDanni[i] = { ...newDanni[i], punto: e.target.value };
-                              updateField('danni_preesistenti', newDanni);
-                            }} 
-                            className="h-6 text-xs w-full" 
-                            placeholder="Es: A1"
-                          />
-                        ) : (
-                          d.punto
-                        )}
-                      </td>
-                      <td className="border border-black p-1">
-                        {isEditing ? (
-                          <Input 
-                            value={d.descrizione || ''} 
-                            onChange={e => {
-                              const newDanni = [...(p.danni_preesistenti || [])];
-                              newDanni[i] = { ...newDanni[i], descrizione: e.target.value };
-                              updateField('danni_preesistenti', newDanni);
-                            }} 
-                            className="h-6 text-xs w-full" 
-                            placeholder="Descrizione del danno"
-                          />
-                        ) : (
-                          d.descrizione
-                        )}
-                      </td>
-                      {isEditing && (
-                        <td className="border border-black p-1 text-center">
-                          <button 
-                            onClick={() => {
-                              const newDanni = (p.danni_preesistenti || []).filter((_, idx) => idx !== i);
-                              updateField('danni_preesistenti', newDanni);
-                            }}
-                            className="text-red-500 hover:text-red-700 text-xs"
-                          >
-                            ✕
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                  {/* Righe vuote editabili */}
-                  {isEditing ? (
-                    <tr>
-                      <td colSpan="3" className="border border-black p-2 text-center">
-                        <button 
-                          onClick={() => {
-                            const newDanni = [...(p.danni_preesistenti || []), { punto: '', descrizione: '' }];
-                            updateField('danni_preesistenti', newDanni);
-                          }}
-                          className="text-blue-600 hover:text-blue-800 text-xs font-medium"
-                        >
-                          + Aggiungi danno
-                        </button>
-                      </td>
-                    </tr>
-                  ) : (
-                    (p.danni_preesistenti || []).length === 0 && (
-                      <tr>
-                        <td colSpan="2" className="border border-black p-2 text-center text-gray-400 italic">
-                          Nessun danno dichiarato al momento della consegna.
-                        </td>
-                      </tr>
-                    )
-                  )}
-                  {/* Righe vuote per stampa se non in editing */}
-                  {!isEditing && [...Array(Math.max(0, 4 - (p.danni_preesistenti || []).length))].map((_, i) => (
-                    <tr key={`empty-${i}`}>
-                      <td className="border border-black p-3"></td>
-                      <td className="border border-black p-3"></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="text-xs text-gray-500 italic mt-2">
-                Eventuali danni non riportati in tabella si presumono inesistenti al momento della consegna del veicolo al locatario.
-              </p>
-            </div>
-          </div>
-
-          {/* VIII. GARANZIE & PAGAMENTO */}
-          <div className="border border-black">
-            <div className="bg-black text-white px-2 py-1 text-sm font-bold">
-              VIII. GARANZIE &amp; PAGAMENTO
+              VI. GARANZIE &amp; PAGAMENTO
             </div>
             <div className="grid grid-cols-3 text-xs">
               {/* Garante */}
@@ -1655,10 +1309,10 @@ export default function ContrattoStampaPage() {
             </div>
           </div>
 
-          {/* IX. DICHIARAZIONI E SOTTOSCRIZIONI */}
-          <div className="border border-black mt-4">
+          {/* VII. DICHIARAZIONI E SOTTOSCRIZIONI */}
+          <div className="border border-black mt-3">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
-              IX. DICHIARAZIONI E SOTTOSCRIZIONI
+              VII. DICHIARAZIONI E SOTTOSCRIZIONI
             </div>
             <div className="p-3 text-xs">
               <p className="leading-relaxed">Il sottoscritto locatario dichiara di aver letto attentamente e di accettare integralmente le condizioni generali di noleggio riportate nel presente contratto, nonche' ogni clausola ivi contenuta.</p>
@@ -1669,16 +1323,16 @@ export default function ContrattoStampaPage() {
           </div>
         </div>
 
-        {/* ========== PAGINA 4/4 - CONDIZIONI GENERALI + FIRME ========== */}
-        <div data-page="4" className="p-8 print:p-6" style={{ minHeight: '297mm' }}>
+        {/* ========== PAGINA 3/3 - CONDIZIONI GENERALI + FIRME ========== */}
+        <div data-page="3" className="p-8 print:p-6" style={{ minHeight: '297mm' }}>
           <div className="flex justify-between items-center border-b border-black pb-2 mb-3">
             <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 4/4</span>
+            <span className="text-xs text-gray-500">Pag. 3/3</span>
           </div>
 
           <div className="border border-black">
             <div className="bg-black text-white px-2 py-1 text-sm font-bold">
-              X. CONDIZIONI GENERALI DI NOLEGGIO
+              VIII. CONDIZIONI GENERALI DI NOLEGGIO
             </div>
             <div className="p-2 leading-snug" style={{ fontSize: '6pt', lineHeight: '1.25' }}>
               <p className="mb-1"><strong>1.</strong> La società RE.LE.CO. Group SRL in seguito definita Locatrice, concede in noleggio alla persona che sottoscrive il presente contratto, in nome proprio ovvero in qualità di legale rappresentate della società indicata, in seguito definita Conduttore, il veicolo descritto nel contratto stesso.</p>
