@@ -295,6 +295,7 @@ export default function ContrattoStampaPage() {
         tariffa_base: editedData.tariffa_base,
         totale_servizi: editedData.totale_servizi,
         servizi_supplementari: editedData.servizi_supplementari,
+        conducenti_aggiuntivi: editedData.conducenti_aggiuntivi,
         totale_franchigie: editedData.totale_franchigie,
         acconto: editedData.acconto,
         deposito_cauzionale: editedData.deposito_cauzionale,
@@ -1045,7 +1046,7 @@ export default function ContrattoStampaPage() {
                           const servizio = serviziDisponibili.find(s => s.id === v);
                           if (servizio) {
                             const durata = p.durata_giorni || 1;
-                            const prezzo = servizio.prezzo || 0;
+                            const prezzo = servizio.prezzo_unitario || servizio.prezzo || 0;
                             const unita = servizio.unita || 'giorno';
                             const qty = unita === 'noleggio' ? 1 : durata;
                             const newServ = {
@@ -1064,7 +1065,7 @@ export default function ContrattoStampaPage() {
                           <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="+ Aggiungi servizio..." /></SelectTrigger>
                           <SelectContent>
                             {serviziDisponibili.map(s => (
-                              <SelectItem key={s.id} value={s.id}>{s.nome} - €{(s.prezzo || 0).toFixed(2)}/{s.unita || 'giorno'}</SelectItem>
+                              <SelectItem key={s.id} value={s.id}>{s.nome} - €{(s.prezzo_unitario || s.prezzo || 0).toFixed(2)}/{s.unita || 'giorno'}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
