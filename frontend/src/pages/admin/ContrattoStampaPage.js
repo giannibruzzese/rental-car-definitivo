@@ -71,10 +71,10 @@ export default function ContrattoStampaPage() {
   
   // Dati agenzia FISSI per il contratto (come da richiesta)
   const AGENCY = {
-    nome: "RE.LE.CO. GROUP",
-    indirizzo: "CORSO UMBERTO, 220",
+    nome: "SOVERATO RENTAL by RE.LE.CO GROUP",
+    indirizzo: "Via Giordano Bruno 81",
     cap: "88068",
-    comune: "SOVERATO",
+    comune: "Soverato",
     provincia: "CZ",
     regione: "CALABRIA",
     piva: "03406230791",
@@ -597,23 +597,26 @@ export default function ContrattoStampaPage() {
         <div data-page="1" className="p-6" style={{ pageBreakAfter: 'always' }}>
           
           {/* HEADER */}
-          <div className="border-b-2 border-black pb-2 mb-3">
+          <div className="border-b-2 border-gray-400 pb-2 mb-3">
             <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-xl font-bold">{AGENCY.nome}</h1>
-                <p className="text-[9px] mt-1">
-                  {AGENCY.indirizzo} - {AGENCY.cap} {AGENCY.comune} ({AGENCY.provincia}) - {AGENCY.regione}
-                </p>
-                <p className="text-xs">
-                  P.IVA {AGENCY.piva} CF {AGENCY.cf}
-                </p>
-                <p className="text-xs">
-                  Tel. {AGENCY.telefono} Email: {AGENCY.email}
-                </p>
+              <div className="flex items-start gap-2">
+                <img src="/logo192.png" alt="Logo" className="w-8 h-8 mt-0.5" style={{ objectFit: 'contain' }} onError={e => e.target.style.display='none'} />
+                <div>
+                  <h1 className="text-lg font-bold tracking-wide" style={{ fontFamily: 'Arial Black, sans-serif' }}>{AGENCY.nome}</h1>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    {AGENCY.indirizzo}, {AGENCY.cap} {AGENCY.comune} {AGENCY.provincia}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    P.iva {AGENCY.piva}  CF {AGENCY.cf}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    Tel. {AGENCY.telefono}  Email:{AGENCY.email}
+                  </p>
+                </div>
               </div>
               <div className="text-right">
-                <h2 className="text-xl font-bold">CONTRATTO</h2>
-                <p className="text-xs text-gray-500">Pag. 1/3</p>
+                <h2 className="text-2xl font-bold" style={{ fontFamily: 'Arial Black, sans-serif', color: '#1a2744' }}>CONTRATTO</h2>
+                <p className="text-sm text-gray-500">Pag. 1/3</p>
               </div>
             </div>
           </div>
@@ -988,8 +991,8 @@ export default function ContrattoStampaPage() {
         {/* ========== PAGINA 2/3 ========== */}
         <div data-page="2" className="p-6" style={{ pageBreakAfter: 'always' }}>
           <div className="flex justify-between items-center border-b border-black pb-1 mb-1">
-            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 2/3</span>
+            <span className="font-bold" style={{ fontFamily: 'Arial Black, sans-serif' }}>{AGENCY.nome} - CONTRATTO</span>
+            <span className="text-sm text-gray-500">Pag. 2/3</span>
           </div>
 
           {/* V. CORRISPETTIVO & SERVIZI */}
@@ -1442,8 +1445,8 @@ export default function ContrattoStampaPage() {
         {/* ========== PAGINA 3/3 - CONDIZIONI GENERALI + FIRME ========== */}
         <div data-page="3" className="p-6" style={{ pageBreakAfter: 'auto' }}>
           <div className="flex justify-between items-center border-b border-black pb-1 mb-1">
-            <span className="font-bold">{AGENCY.nome} - CONTRATTO</span>
-            <span className="text-xs text-gray-500">Pag. 3/3</span>
+            <span className="font-bold" style={{ fontFamily: 'Arial Black, sans-serif' }}>{AGENCY.nome} - CONTRATTO</span>
+            <span className="text-sm text-gray-500">Pag. 3/3</span>
           </div>
 
           <div className="border border-black">
