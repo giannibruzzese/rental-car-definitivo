@@ -1153,7 +1153,16 @@ export default function CalendarioPrenotazioniPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Circuito</Label>
-                  <Input value={cartaCredito.circuito} onChange={e => setCartaCredito({...cartaCredito, circuito: e.target.value})} placeholder="Visa, Mastercard..." />
+                  <Select value={cartaCredito.circuito || 'none'} onValueChange={v => setCartaCredito({...cartaCredito, circuito: v === 'none' ? '' : v})}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Circuito" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nessuno</SelectItem>
+                      <SelectItem value="Visa">Visa</SelectItem>
+                      <SelectItem value="Mastercard">Mastercard</SelectItem>
+                      <SelectItem value="American Express">American Express</SelectItem>
+                      <SelectItem value="Altro">Altro</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Intestatario</Label>
