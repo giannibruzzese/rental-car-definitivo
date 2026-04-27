@@ -610,7 +610,7 @@ export default function ContrattoStampaPage() {
                     P.iva {AGENCY.piva}  CF {AGENCY.cf}
                   </p>
                   <p className="text-xs text-gray-600">
-                    Tel. {AGENCY.telefono}  Email:{AGENCY.email}
+                    Tel. {AGENCY.telefono}  Email:{AGENCY.email} - Soverato.rental@libero.it
                   </p>
                 </div>
               </div>
