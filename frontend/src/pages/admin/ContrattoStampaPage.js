@@ -814,7 +814,8 @@ export default function ContrattoStampaPage() {
                     <th className="border border-black p-1 text-left">Documento identità</th>
                     <th className="border border-black p-1 text-left">Nascita (luogo, data)</th>
                     <th className="border border-black p-1 text-left">Patente</th>
-                    <th className="border border-black p-1 text-left">Contatti</th>
+                    <th className="border border-black p-1 text-left">Email</th>
+                    <th className="border border-black p-1 text-left">Cellulare</th>
                     {isEditing && <th className="border border-black p-1 w-8"></th>}
                   </tr>
                 </thead>
@@ -845,6 +846,9 @@ export default function ContrattoStampaPage() {
                             </div>
                           </td>
                           <td className="border border-black p-0.5">
+                            <Input value={c.email || ''} onChange={e => { const arr = [...(p.conducenti_aggiuntivi||[])]; arr[i] = {...arr[i], email: e.target.value}; updateField('conducenti_aggiuntivi', arr); }} className="h-5 text-xs" placeholder="Email" />
+                          </td>
+                          <td className="border border-black p-0.5">
                             <Input value={c.cellulare || ''} onChange={e => { const arr = [...(p.conducenti_aggiuntivi||[])]; arr[i] = {...arr[i], cellulare: e.target.value}; updateField('conducenti_aggiuntivi', arr); }} className="h-5 text-xs" placeholder="Cellulare" />
                           </td>
                           <td className="border border-black p-0.5 text-center">
@@ -857,6 +861,7 @@ export default function ContrattoStampaPage() {
                           <td className="border border-black p-1">{c.codice_fiscale}</td>
                           <td className="border border-black p-1">{c.luogo_nascita}, {formatDateIT(c.data_nascita)}</td>
                           <td className="border border-black p-1">{c.patente_numero} ({c.patente_categoria})</td>
+                          <td className="border border-black p-1">{c.email || ''}</td>
                           <td className="border border-black p-1">{c.cellulare}</td>
                         </>
                       )}
@@ -864,8 +869,8 @@ export default function ContrattoStampaPage() {
                   ))}
                   {isEditing && (
                     <tr>
-                      <td colSpan="6" className="border border-black p-1 text-center">
-                        <button onClick={() => { const arr = [...(p.conducenti_aggiuntivi||[]), {nome:'',cognome:'',codice_fiscale:'',luogo_nascita:'',data_nascita:'',patente_numero:'',patente_categoria:'B',cellulare:''}]; updateField('conducenti_aggiuntivi', arr); }} className="text-blue-600 hover:text-blue-800 text-xs font-medium">+ Aggiungi conducente</button>
+                      <td colSpan="7" className="border border-black p-1 text-center">
+                        <button onClick={() => { const arr = [...(p.conducenti_aggiuntivi||[]), {nome:'',cognome:'',codice_fiscale:'',luogo_nascita:'',data_nascita:'',patente_numero:'',patente_categoria:'B',email:'',cellulare:''}]; updateField('conducenti_aggiuntivi', arr); }} className="text-blue-600 hover:text-blue-800 text-xs font-medium">+ Aggiungi conducente</button>
                       </td>
                     </tr>
                   )}
