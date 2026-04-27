@@ -351,7 +351,200 @@ async def check_return_reminders():
 async def start_reminder_task():
     """Start the background reminder task"""
     asyncio.create_task(check_return_reminders())
-    logger.info("Return reminder background task started (checks every 15 min)")
+    asyncio.create_task(weekly_calendar_email())
+    logger.info("Background tasks started: return reminders (15min) + weekly calendar email (Sun 18:00)")
+
+# ========== WEEKLY CALENDAR EXCEL EMAIL (Every Sunday at 18:00) ==========
+
+async def weekly_calendar_email():
+    """Send weekly calendar Excel to soverato.rental@libero.it every Sunday at 18:00 (Italy)"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from io import BytesIO
+    import base64
+    
+    while True:
+        try:
+            # Check if it's Sunday 18:00 (Italy = UTC+2)
+            now_utc = datetime.now(timezone.utc)
+            now_italy = now_utc + timedelta(hours=2)
+            
+            is_sunday = now_italy.weekday() == 6  # 0=Mon, 6=Sun
+            is_target_hour = now_italy.hour == 18 and now_italy.minute < 15
+            
+            if is_sunday and is_target_hour:
+                # Check if already sent today
+                today_key = f"weekly_calendar_{now_italy.strftime('%Y-%m-%d')}"
+                already_sent = await db.email_log.find_one({"key": today_key})
+                
+                if not already_sent:
+                    logger.info("Generating weekly calendar Excel...")
+                    
+                    # Fetch all bookings
+                    bookings = await db.prenotazioni.find(
+                        {"status": {"$nin": ["annullata"]}},
+                        {"_id": 0}
+                    ).sort("data_ritiro", 1).to_list(1000)
+                    
+                    # Fetch calendar notes
+                    notes = await db.calendar_notes.find({}, {"_id": 0}).sort("data", 1).to_list(500)
+                    
+                    # Create Excel
+                    wb = openpyxl.Workbook()
+                    
+                    # --- Sheet 1: Prenotazioni ---
+                    ws = wb.active
+                    ws.title = "Prenotazioni"
+                    
+                    header_font = Font(bold=True, color="FFFFFF", size=10)
+                    header_fill = PatternFill(start_color="1a2744", end_color="1a2744", fill_type="solid")
+                    thin_border = Border(
+                        left=Side(style='thin'), right=Side(style='thin'),
+                        top=Side(style='thin'), bottom=Side(style='thin')
+                    )
+                    
+                    headers = ["Stato", "Cliente", "Email", "Cellulare", "Veicolo", "Targa", 
+                               "Data Ritiro", "Ora Ritiro", "Data Riconsegna", "Ora Riconsegna",
+                               "Giorni", "Tariffa/gg", "Totale", "Note"]
+                    
+                    for col, h in enumerate(headers, 1):
+                        cell = ws.cell(row=1, column=col, value=h)
+                        cell.font = header_font
+                        cell.fill = header_fill
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.border = thin_border
+                    
+                    # Status colors
+                    status_fills = {
+                        'bozza': PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid"),
+                        'in_verifica': PatternFill(start_color="FFF9C4", end_color="FFF9C4", fill_type="solid"),
+                        'approvata': PatternFill(start_color="C8E6C9", end_color="C8E6C9", fill_type="solid"),
+                        'contratto_generato': PatternFill(start_color="BBDEFB", end_color="BBDEFB", fill_type="solid"),
+                        'consegnato': PatternFill(start_color="E1BEE7", end_color="E1BEE7", fill_type="solid"),
+                        'chiuso': PatternFill(start_color="CFD8DC", end_color="CFD8DC", fill_type="solid"),
+                    }
+                    
+                    for row_idx, b in enumerate(bookings, 2):
+                        data_ritiro = b.get('data_ritiro', '')
+                        data_riconsegna = b.get('data_riconsegna', '')
+                        if data_ritiro and len(data_ritiro) >= 10:
+                            data_ritiro = f"{data_ritiro[8:10]}/{data_ritiro[5:7]}/{data_ritiro[:4]}"
+                        if data_riconsegna and len(data_riconsegna) >= 10:
+                            data_riconsegna = f"{data_riconsegna[8:10]}/{data_riconsegna[5:7]}/{data_riconsegna[:4]}"
+                        
+                        values = [
+                            b.get('status', ''),
+                            b.get('cliente_nome', ''),
+                            b.get('cliente_email', ''),
+                            b.get('cliente_cellulare', ''),
+                            f"{b.get('veicolo_marca', '')} {b.get('veicolo_modello', '')}",
+                            b.get('veicolo_targa', ''),
+                            data_ritiro,
+                            b.get('ora_ritiro', ''),
+                            data_riconsegna,
+                            b.get('ora_riconsegna', ''),
+                            b.get('durata_giorni', ''),
+                            b.get('tariffa_giornaliera', ''),
+                            b.get('tariffa_base', ''),
+                            b.get('note', '')
+                        ]
+                        
+                        fill = status_fills.get(b.get('status', ''), None)
+                        for col, v in enumerate(values, 1):
+                            cell = ws.cell(row=row_idx, column=col, value=v)
+                            cell.border = thin_border
+                            if fill:
+                                cell.fill = fill
+                    
+                    # Auto-width columns
+                    for col in ws.columns:
+                        max_len = max((len(str(cell.value or '')) for cell in col), default=10)
+                        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 25)
+                    
+                    # --- Sheet 2: Note Calendario ---
+                    ws2 = wb.create_sheet("Note Calendario")
+                    note_headers = ["Data", "Titolo", "Contenuto"]
+                    for col, h in enumerate(note_headers, 1):
+                        cell = ws2.cell(row=1, column=col, value=h)
+                        cell.font = header_font
+                        cell.fill = PatternFill(start_color="E65100", end_color="E65100", fill_type="solid")
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.border = thin_border
+                    
+                    for row_idx, n in enumerate(notes, 2):
+                        data_nota = n.get('data', '')
+                        if data_nota and len(data_nota) >= 10:
+                            data_nota = f"{data_nota[8:10]}/{data_nota[5:7]}/{data_nota[:4]}"
+                        ws2.cell(row=row_idx, column=1, value=data_nota).border = thin_border
+                        ws2.cell(row=row_idx, column=2, value=n.get('titolo', '')).border = thin_border
+                        ws2.cell(row=row_idx, column=3, value=n.get('contenuto', '')).border = thin_border
+                    
+                    for col in ws2.columns:
+                        max_len = max((len(str(cell.value or '')) for cell in col), default=10)
+                        ws2.column_dimensions[col[0].column_letter].width = min(max_len + 2, 40)
+                    
+                    # Save to bytes
+                    excel_buffer = BytesIO()
+                    wb.save(excel_buffer)
+                    excel_bytes = excel_buffer.getvalue()
+                    
+                    # Send email with attachment via Brevo SMTP
+                    if BREVO_CONFIGURED:
+                        from email.mime.base import MIMEBase
+                        from email import encoders
+                        
+                        msg = MIMEMultipart('mixed')
+                        msg['Subject'] = f"Calendario Prenotazioni - Settimana del {now_italy.strftime('%d/%m/%Y')}"
+                        msg['From'] = f'{BREVO_SENDER_NAME} <{BREVO_SENDER_EMAIL}>'
+                        msg['To'] = 'Soverato Rental <soverato.rental@libero.it>'
+                        
+                        html_body = f"""
+                        <html><body>
+                        <h2>Calendario Prenotazioni Settimanale</h2>
+                        <p>In allegato il file Excel con tutte le prenotazioni e le note del calendario.</p>
+                        <p><strong>Data generazione:</strong> {now_italy.strftime('%d/%m/%Y ore %H:%M')}</p>
+                        <p><strong>Prenotazioni attive:</strong> {len(bookings)}</p>
+                        <p><strong>Note calendario:</strong> {len(notes)}</p>
+                        <br>
+                        <p><em>Soverato Rental - RE.LE.CO GROUP</em></p>
+                        </body></html>
+                        """
+                        msg.attach(MIMEText(html_body, 'html'))
+                        
+                        attachment = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                        attachment.set_payload(excel_bytes)
+                        encoders.encode_base64(attachment)
+                        filename = f"calendario_prenotazioni_{now_italy.strftime('%d_%m_%Y')}.xlsx"
+                        attachment.add_header('Content-Disposition', 'attachment', filename=filename)
+                        msg.attach(attachment)
+                        
+                        try:
+                            server = smtplib.SMTP(BREVO_SMTP_SERVER, BREVO_SMTP_PORT, timeout=15)
+                            server.starttls()
+                            server.login(BREVO_SMTP_LOGIN, BREVO_SMTP_KEY)
+                            server.sendmail(BREVO_SENDER_EMAIL, ['soverato.rental@libero.it'], msg.as_string())
+                            server.quit()
+                            logger.info(f"Weekly calendar Excel sent to soverato.rental@libero.it ({len(bookings)} bookings, {len(notes)} notes)")
+                            
+                            await db.email_log.insert_one({
+                                "key": today_key,
+                                "email": "soverato.rental@libero.it",
+                                "type": "weekly_calendar_excel",
+                                "sent": True,
+                                "bookings_count": len(bookings),
+                                "notes_count": len(notes),
+                                "sent_at": datetime.now(timezone.utc).isoformat()
+                            })
+                        except Exception as e:
+                            logger.error(f"Error sending weekly calendar email: {e}")
+                    else:
+                        logger.warning("Brevo not configured - weekly calendar not sent")
+                        
+        except Exception as e:
+            logger.error(f"Weekly calendar task error: {e}")
+        
+        # Check every 10 minutes
+        await asyncio.sleep(600)
 
 # ========== VALIDATION HELPERS ==========
 
@@ -3073,6 +3266,78 @@ async def test_send_reminder(prenotazione_id: str, admin: dict = Depends(get_adm
         return {"message": f"Email promemoria inviata a {email}", "success": True}
     else:
         raise HTTPException(status_code=500, detail="Errore invio email")
+
+@api_router.post("/email/test-weekly-calendar")
+async def test_weekly_calendar(admin: dict = Depends(get_admin_user)):
+    """Manually trigger the weekly calendar Excel email"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from io import BytesIO
+    from email.mime.base import MIMEBase
+    from email import encoders
+    
+    if not BREVO_CONFIGURED:
+        raise HTTPException(status_code=400, detail="Brevo SMTP non configurato")
+    
+    bookings = await db.prenotazioni.find(
+        {"status": {"$nin": ["annullata"]}}, {"_id": 0}
+    ).sort("data_ritiro", 1).to_list(1000)
+    
+    notes = await db.calendar_notes.find({}, {"_id": 0}).sort("data", 1).to_list(500)
+    
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Prenotazioni"
+    
+    hf = Font(bold=True, color="FFFFFF", size=10)
+    hfill = PatternFill(start_color="1a2744", end_color="1a2744", fill_type="solid")
+    tb = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+    
+    for col, h in enumerate(["Stato","Cliente","Email","Cellulare","Veicolo","Targa","Data Ritiro","Ora Ritiro","Data Riconsegna","Ora Riconsegna","Giorni","Tariffa/gg","Totale","Note"], 1):
+        c = ws.cell(row=1, column=col, value=h)
+        c.font = hf; c.fill = hfill; c.alignment = Alignment(horizontal='center'); c.border = tb
+    
+    for ri, b in enumerate(bookings, 2):
+        dr = b.get('data_ritiro',''); drc = b.get('data_riconsegna','')
+        if dr and len(dr)>=10: dr = f"{dr[8:10]}/{dr[5:7]}/{dr[:4]}"
+        if drc and len(drc)>=10: drc = f"{drc[8:10]}/{drc[5:7]}/{drc[:4]}"
+        for ci, v in enumerate([b.get('status',''), b.get('cliente_nome',''), b.get('cliente_email',''), b.get('cliente_cellulare',''), f"{b.get('veicolo_marca','')} {b.get('veicolo_modello','')}", b.get('veicolo_targa',''), dr, b.get('ora_ritiro',''), drc, b.get('ora_riconsegna',''), b.get('durata_giorni',''), b.get('tariffa_giornaliera',''), b.get('tariffa_base',''), b.get('note','')], 1):
+            ws.cell(row=ri, column=ci, value=v).border = tb
+    
+    ws2 = wb.create_sheet("Note Calendario")
+    for col, h in enumerate(["Data","Titolo","Contenuto"], 1):
+        c = ws2.cell(row=1, column=col, value=h)
+        c.font = hf; c.fill = PatternFill(start_color="E65100", end_color="E65100", fill_type="solid"); c.border = tb
+    for ri, n in enumerate(notes, 2):
+        dn = n.get('data','')
+        if dn and len(dn)>=10: dn = f"{dn[8:10]}/{dn[5:7]}/{dn[:4]}"
+        ws2.cell(row=ri, column=1, value=dn).border = tb
+        ws2.cell(row=ri, column=2, value=n.get('titolo','')).border = tb
+        ws2.cell(row=ri, column=3, value=n.get('contenuto','')).border = tb
+    
+    buf = BytesIO(); wb.save(buf); excel_bytes = buf.getvalue()
+    
+    now_it = datetime.now(timezone.utc) + timedelta(hours=2)
+    msg = MIMEMultipart('mixed')
+    msg['Subject'] = f"Calendario Prenotazioni - {now_it.strftime('%d/%m/%Y')}"
+    msg['From'] = f'{BREVO_SENDER_NAME} <{BREVO_SENDER_EMAIL}>'
+    msg['To'] = 'soverato.rental@libero.it'
+    msg.attach(MIMEText(f"<h2>Calendario Prenotazioni</h2><p>Prenotazioni: {len(bookings)}, Note: {len(notes)}</p>", 'html'))
+    
+    att = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    att.set_payload(excel_bytes)
+    encoders.encode_base64(att)
+    att.add_header('Content-Disposition', 'attachment', filename=f"calendario_{now_it.strftime('%d_%m_%Y')}.xlsx")
+    msg.attach(att)
+    
+    try:
+        sv = smtplib.SMTP(BREVO_SMTP_SERVER, BREVO_SMTP_PORT, timeout=15)
+        sv.starttls(); sv.login(BREVO_SMTP_LOGIN, BREVO_SMTP_KEY)
+        sv.sendmail(BREVO_SENDER_EMAIL, ['soverato.rental@libero.it'], msg.as_string())
+        sv.quit()
+        return {"message": f"Calendario Excel inviato a soverato.rental@libero.it ({len(bookings)} prenotazioni, {len(notes)} note)", "success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore invio: {str(e)}")
 
 # Include router
 app.include_router(api_router)
