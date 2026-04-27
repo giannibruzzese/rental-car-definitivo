@@ -1632,8 +1632,15 @@ async def admin_create_prenotazione(data: dict, admin: dict = Depends(get_admin_
         prezzo_km_extra = veicolo.get("prezzo_km_extra", 0.20)
         deposito_cauzionale = veicolo.get("deposito_cauzionale", 500)
     
-    # Calculate duration and prices
-    durata = data.get("durata_giorni", 1)
+    # Calculate duration based on actual hours (1 day = 24h, any excess = +1 day)
+    try:
+        dt_ritiro = datetime.strptime(f"{data.get('data_ritiro')} {data.get('ora_ritiro', '09:00')}", "%Y-%m-%d %H:%M")
+        dt_riconsegna = datetime.strptime(f"{data.get('data_riconsegna')} {data.get('ora_riconsegna', '18:00')}", "%Y-%m-%d %H:%M")
+        durata_ore = (dt_riconsegna - dt_ritiro).total_seconds() / 3600
+        durata = max(1, int(durata_ore / 24) + (1 if durata_ore % 24 > 0 else 0))
+    except:
+        durata = data.get("durata_giorni", 1)
+    
     tariffa_base = tariffa_giornaliera * durata
     km_inclusi = km_inclusi_giorno * durata
     

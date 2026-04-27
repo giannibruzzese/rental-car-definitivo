@@ -97,7 +97,22 @@ export default function PrenotaPage() {
     fetchTariffaStagionale();
   }, [vehicle, vehicleId, pickupDate, returnDate]);
 
-  const days = Math.max(1, differenceInDays(returnDate, pickupDate));
+  // Calcolo giorni: 1 giorno = 24h, ogni eccedenza = +1 giorno
+  const calculateDays = () => {
+    try {
+      const [ph, pm] = pickupTime.split(':').map(Number);
+      const [rh, rm] = returnTime.split(':').map(Number);
+      const start = new Date(pickupDate);
+      start.setHours(ph, pm, 0);
+      const end = new Date(returnDate);
+      end.setHours(rh, rm, 0);
+      const diffHours = (end - start) / (1000 * 60 * 60);
+      return Math.max(1, Math.floor(diffHours / 24) + (diffHours % 24 > 0 ? 1 : 0));
+    } catch {
+      return Math.max(1, differenceInDays(returnDate, pickupDate));
+    }
+  };
+  const days = calculateDays();
   const dailyRate = tariffaStagionale?.tariffa_giornaliera || vehicle?.tariffa_giornaliera || 0;
   const totalPrice = days * dailyRate;
   const kmInclusi = vehicle ? days * vehicle.km_inclusi_giorno : 0;

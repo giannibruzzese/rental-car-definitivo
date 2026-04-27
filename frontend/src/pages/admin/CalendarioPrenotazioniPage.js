@@ -572,11 +572,11 @@ export default function CalendarioPrenotazioniPage() {
       const isGenerico = selectedVeicoloBooking === 'generico';
       const veicolo = isGenerico ? null : veicoli.find(v => v.id === selectedVeicoloBooking);
       
-      // Calculate days
-      const startDate = new Date(newBooking.data_ritiro);
-      const endDate = new Date(newBooking.data_riconsegna);
-      const diffTime = Math.abs(endDate - startDate);
-      const durata = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+      // Calculate days: 1 day = 24h, any excess over 24h = +1 day
+      const startDate = new Date(`${newBooking.data_ritiro}T${newBooking.ora_ritiro || '09:00'}`);
+      const endDate = new Date(`${newBooking.data_riconsegna}T${newBooking.ora_riconsegna || '18:00'}`);
+      const diffHours = (endDate - startDate) / (1000 * 60 * 60);
+      const durata = Math.max(1, Math.floor(diffHours / 24) + (diffHours % 24 > 0 ? 1 : 0));
       
       // Create booking via admin endpoint
       const bookingData = {
