@@ -548,6 +548,22 @@ export default function CalendarioPrenotazioniPage() {
         });
         
         clienteId = registerRes.data.user.id;
+        
+        // Save credit card to new client profile if provided
+        if (cartaCredito.circuito || cartaCredito.intestatario || cartaCredito.numero) {
+          try {
+            await axios.put(`${API}/api/clienti/${clienteId}`, {
+              carta_credito: {
+                circuito: cartaCredito.circuito,
+                intestatario: cartaCredito.intestatario,
+                numero: cartaCredito.numero,
+                scadenza_mese: cartaCredito.scadenza_mese,
+                scadenza_anno: cartaCredito.scadenza_anno
+              }
+            }, { headers: { Authorization: `Bearer ${token}` } });
+          } catch (e) { console.error('Error saving card to new client:', e); }
+        }
+        
         toast.success(`Cliente ${newCliente.nome} ${newCliente.cognome} creato!`);
       }
       

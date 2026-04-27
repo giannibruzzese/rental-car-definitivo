@@ -1702,6 +1702,32 @@ async def admin_create_prenotazione(data: dict, admin: dict = Depends(get_admin_
     await db.prenotazioni.insert_one(prenotazione_doc)
     prenotazione_doc.pop("_id", None)
     
+    # Save credit card to client profile if provided and client doesn't have it
+    if not is_blocco_calendario and user_id != 'BLOCCO_CALENDARIO':
+        carta_from_booking = {
+            "circuito": data.get("carta_circuito", ""),
+            "intestatario": data.get("carta_intestatario", ""),
+            "numero": data.get("carta_numero", ""),
+            "scadenza_mese": data.get("carta_scadenza_mese", ""),
+            "scadenza_anno": data.get("carta_scadenza_anno", "")
+        }
+        # Save if any card data was provided
+        if any(v for v in carta_from_booking.values() if v):
+            existing_carta = cliente.get("carta_credito", {})
+            # Update if client has no card or card data is empty
+            if not existing_carta or not any(v for v in existing_carta.values() if v):
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {"carta_credito": carta_from_booking}}
+                )
+                logger.info(f"Credit card saved to client profile {user_id}")
+            else:
+                # Always update with latest card data
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {"carta_credito": carta_from_booking}}
+                )
+    
     # Log
     await db.logs.insert_one({
         "tipo": "prenotazione_admin_creata",
