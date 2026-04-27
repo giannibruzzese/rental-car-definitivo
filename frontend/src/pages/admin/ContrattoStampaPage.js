@@ -599,8 +599,8 @@ export default function ContrattoStampaPage() {
           {/* HEADER */}
           <div className="border-b-2 border-gray-400 pb-2 mb-3">
             <div className="flex justify-between items-start">
-              <div className="flex items-start gap-2">
-                <img src="/logo192.png" alt="Logo" className="w-8 h-8 mt-0.5" style={{ objectFit: 'contain' }} onError={e => e.target.style.display='none'} />
+              <div className="flex items-start gap-3">
+                <img src="/images/logo_agenzia.png" alt="Logo" className="mt-0.5" style={{ width: '45px', height: 'auto', objectFit: 'contain' }} onError={e => e.target.style.display='none'} />
                 <div>
                   <h1 className="text-lg font-bold tracking-wide" style={{ fontFamily: 'Arial Black, sans-serif' }}>{AGENCY.nome}</h1>
                   <p className="text-xs text-gray-600 mt-0.5">
