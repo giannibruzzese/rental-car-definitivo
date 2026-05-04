@@ -1834,6 +1834,48 @@ async def admin_create_prenotazione(data: dict, admin: dict = Depends(get_admin_
     except:
         durata = data.get("durata_giorni", 1)
     
+    # Check for seasonal rate
+    tariffa_stagionale_info = None
+    if not is_blocco_calendario:
+        try:
+            from datetime import datetime as dt
+            start_date = dt.strptime(data.get('data_ritiro'), "%Y-%m-%d").date()
+            end_date = dt.strptime(data.get('data_riconsegna'), "%Y-%m-%d").date()
+            tariffe = await db.tariffe_stagionali.find({}, {"_id": 0}).to_list(100)
+            
+            tariffe_specifiche = []
+            tariffe_generali = []
+            
+            for t in tariffe:
+                try:
+                    t_inizio = dt.strptime(t["data_inizio"], "%Y-%m-%d").date()
+                    t_fine = dt.strptime(t["data_fine"], "%Y-%m-%d").date()
+                    if start_date >= t_inizio and start_date <= t_fine:
+                        if t.get("veicolo_id") == veicolo_id:
+                            tariffe_specifiche.append(t)
+                        elif t.get("veicolo_id") is None or t.get("veicolo_id") == "" or t.get("veicolo_id") == "tutti":
+                            tariffe_generali.append(t)
+                except:
+                    continue
+            
+            best = None
+            if tariffe_specifiche:
+                best = tariffe_specifiche[0]
+            elif tariffe_generali:
+                best = tariffe_generali[0]
+            
+            if best:
+                tariffa_giornaliera = best["tariffa_giornaliera"]
+                tariffa_stagionale_info = {
+                    "nome": best["nome"],
+                    "tariffa_giornaliera": best["tariffa_giornaliera"],
+                    "data_inizio": best["data_inizio"],
+                    "data_fine": best["data_fine"],
+                    "tipo": "specifica" if tariffe_specifiche else "generale"
+                }
+        except Exception as e:
+            logger.warning(f"Error checking seasonal rate in admin-create: {e}")
+    
     tariffa_base = tariffa_giornaliera * durata
     km_inclusi = km_inclusi_giorno * durata
     
@@ -1861,6 +1903,7 @@ async def admin_create_prenotazione(data: dict, admin: dict = Depends(get_admin_
         "luogo_riconsegna": "Sede",
         "indirizzo_riconsegna": "Corso Umberto, 220 - Soverato (CZ)",
         "tariffa_giornaliera": tariffa_giornaliera,
+        "tariffa_stagionale": tariffa_stagionale_info,
         "tariffa_base": tariffa_base,
         "km_inclusi_giorno": km_inclusi_giorno,
         "km_inclusi_totali": km_inclusi,
