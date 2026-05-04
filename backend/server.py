@@ -1319,8 +1319,8 @@ async def get_vehicles_disponibili(
 
 @api_router.get("/vehicles/available-period")
 async def get_vehicles_available_for_period(data_inizio: str, data_fine: str):
-    """Get vehicles available for a specific period (for booking dropdown)"""
-    # Get all vehicles
+    """Get all active vehicles with availability status for a specific period"""
+    # Get all active vehicles (disponibile status)
     all_vehicles = await db.vehicles.find({"status": {"$in": ["disponibile", "available"]}}, {"_id": 0}).to_list(1000)
     
     # Get all bookings that overlap with the requested period
@@ -1339,7 +1339,7 @@ async def get_vehicles_available_for_period(data_inizio: str, data_fine: str):
     overlapping_bookings = await db.prenotazioni.find(query, {"veicolo_id": 1}).to_list(1000)
     booked_vehicle_ids = set(b.get("veicolo_id") for b in overlapping_bookings if b.get("veicolo_id") and b.get("veicolo_id") != "generico")
     
-    # Filter out booked vehicles
+    # Return only available (not booked) vehicles
     available = [v for v in all_vehicles if v.get("id") not in booked_vehicle_ids]
     
     return [normalize_vehicle(v) for v in available]

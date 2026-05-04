@@ -216,7 +216,7 @@ export default function CalendarioPrenotazioniPage() {
     try {
       const [prenotazioniRes, veicoliRes, clientiRes, noteRes] = await Promise.all([
         axios.get(`${API}/api/prenotazioni`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API}/api/vehicles`),
+        axios.get(`${API}/api/vehicles?status=disponibile`),
         axios.get(`${API}/api/clienti`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API}/api/calendario/note`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] }))
       ]);
