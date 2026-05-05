@@ -1825,6 +1825,24 @@ async def admin_create_prenotazione(data: dict, admin: dict = Depends(get_admin_
         prezzo_km_extra = veicolo.get("prezzo_km_extra", 0.20)
         deposito_cauzionale = veicolo.get("deposito_cauzionale", 500)
     
+    # Check vehicle availability for the requested period
+    if not is_blocco_calendario:
+        data_ritiro = data.get('data_ritiro')
+        data_riconsegna = data.get('data_riconsegna')
+        if data_ritiro and data_riconsegna:
+            conflict = await db.prenotazioni.find_one({
+                "veicolo_id": veicolo_id,
+                "status": {"$nin": ["annullata", "chiuso"]},
+                "$or": [
+                    {"data_ritiro": {"$lte": data_riconsegna}, "data_riconsegna": {"$gte": data_ritiro}}
+                ]
+            })
+            if conflict:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Veicolo già prenotato dal {conflict.get('data_ritiro')} al {conflict.get('data_riconsegna')} (Cliente: {conflict.get('cliente_nome', 'N/A')})"
+                )
+    
     # Calculate duration based on actual hours (1 day = 24h, any excess = +1 day)
     try:
         dt_ritiro = datetime.strptime(f"{data.get('data_ritiro')} {data.get('ora_ritiro', '09:00')}", "%Y-%m-%d %H:%M")
@@ -2031,9 +2049,29 @@ async def admin_update_prenotazione(prenotazione_id: str, data: dict, admin: dic
     
     update_data = {k: v for k, v in data.items() if k in allowed_fields}
     
-    # If vehicle changed by ID, update vehicle data
-    if "veicolo_id" in update_data and update_data["veicolo_id"] != prenotazione["veicolo_id"]:
-        new_vehicle_raw = await db.vehicles.find_one({"id": update_data["veicolo_id"]}, {"_id": 0})
+    # If vehicle changed by ID, check availability and update vehicle data
+    if "veicolo_id" in update_data and update_data["veicolo_id"] != prenotazione.get("veicolo_id"):
+        new_veicolo_id = update_data["veicolo_id"]
+        data_ritiro = update_data.get("data_ritiro", prenotazione.get("data_ritiro"))
+        data_riconsegna = update_data.get("data_riconsegna", prenotazione.get("data_riconsegna"))
+        
+        # Check if vehicle is already booked for this period
+        if data_ritiro and data_riconsegna:
+            conflict = await db.prenotazioni.find_one({
+                "id": {"$ne": prenotazione_id},
+                "veicolo_id": new_veicolo_id,
+                "status": {"$nin": ["annullata", "chiuso"]},
+                "$or": [
+                    {"data_ritiro": {"$lte": data_riconsegna}, "data_riconsegna": {"$gte": data_ritiro}}
+                ]
+            })
+            if conflict:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Veicolo già prenotato dal {conflict.get('data_ritiro')} al {conflict.get('data_riconsegna')} (Cliente: {conflict.get('cliente_nome', 'N/A')})"
+                )
+        
+        new_vehicle_raw = await db.vehicles.find_one({"id": new_veicolo_id}, {"_id": 0})
         if new_vehicle_raw:
             new_vehicle = normalize_vehicle(new_vehicle_raw)
             update_data["veicolo_marca"] = new_vehicle["marca"]

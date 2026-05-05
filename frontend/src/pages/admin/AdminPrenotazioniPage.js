@@ -281,12 +281,24 @@ export function AdminPrenotazioneDetailPage() {
     try {
       const [pren, vehs, franch, serv] = await Promise.all([
         api.get(`/prenotazioni/${id}`, token),
-        api.get('/vehicles', token),
+        api.get('/vehicles?status=disponibile', token),
         api.get('/franchigie', token),
         api.get('/servizi-supplementari', token)
       ]);
       setPrenotazione(pren);
-      setVehicles(vehs);
+      
+      // Mark vehicles with availability for this booking's period
+      if (pren.data_ritiro && pren.data_riconsegna) {
+        try {
+          const availableVehs = await api.get(`/vehicles/available-period?data_inizio=${pren.data_ritiro}&data_fine=${pren.data_riconsegna}`, token);
+          const availableIds = new Set((availableVehs || []).map(v => v.id));
+          availableIds.add(pren.veicolo_id); // Current vehicle is always selectable
+          setVehicles((vehs || []).map(v => ({ ...v, disponibile_periodo: availableIds.has(v.id) })));
+        } catch { setVehicles(vehs || []); }
+      } else {
+        setVehicles(vehs || []);
+      }
+      
       setFranchigie(franch);
       setServizi(serv);
       
@@ -385,7 +397,8 @@ export function AdminPrenotazioneDetailPage() {
       await api.put(`/prenotazioni/${id}/admin-update`, { [field]: value }, token);
       fetchData();
     } catch (error) {
-      toast.error('Errore nell\'aggiornamento');
+      const detail = error?.response?.data?.detail || 'Errore nell\'aggiornamento';
+      toast.error(detail);
     }
   };
 
@@ -518,8 +531,8 @@ export function AdminPrenotazioneDetailPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {vehicles.map(v => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.marca} {v.modello} - {v.targa} ({v.status})
+                      <SelectItem key={v.id} value={v.id} disabled={v.disponibile_periodo === false}>
+                        {v.disponibile_periodo === false ? '❌ ' : '✅ '}{v.marca} {v.modello} - {v.targa}{v.disponibile_periodo === false ? ' (GIÀ PRENOTATO)' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
