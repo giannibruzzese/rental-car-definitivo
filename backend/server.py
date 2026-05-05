@@ -2024,7 +2024,9 @@ async def admin_update_prenotazione(prenotazione_id: str, data: dict, admin: dic
         "addebito_pulizia", "addebito_altro", "totale_addebiti_rientro",
         # Franchigie incluse/escluse
         "franchigia_kasko", "franchigia_sinistro", "scoperto_furto",
-        "franchigia_kasko_inclusa", "franchigia_sinistro_inclusa"
+        "franchigia_kasko_inclusa", "franchigia_sinistro_inclusa",
+        # Cliente (per assegnare cliente a un blocco)
+        "cliente_id", "cliente_nome", "cliente_email", "cliente_cellulare"
     ]
     
     update_data = {k: v for k, v in data.items() if k in allowed_fields}

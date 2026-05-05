@@ -174,6 +174,79 @@ export default function AdminPrenotazioniPage() {
 }
 
 // Booking Detail Page
+// Component to assign a client to a calendar block
+function ClienteAssignSelect({ token, prenotazioneId, onAssigned }) {
+  const [clienti, setClienti] = useState([]);
+  const [selectedClienteId, setSelectedClienteId] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchClienti = async () => {
+      try {
+        const data = await api.get('/clienti', token);
+        setClienti(data || []);
+      } catch (e) { console.error(e); }
+    };
+    fetchClienti();
+  }, [token]);
+
+  const handleAssign = async () => {
+    if (!selectedClienteId) return;
+    setSaving(true);
+    try {
+      const cliente = clienti.find(c => c.id === selectedClienteId);
+      if (!cliente) return;
+      
+      await api.put(`/prenotazioni/${prenotazioneId}/admin-update`, {
+        cliente_id: cliente.id,
+        cliente_nome: `${cliente.nome} ${cliente.cognome}`,
+        cliente_email: cliente.email,
+        cliente_cellulare: cliente.cellulare || '',
+        carta_circuito: cliente.carta_credito?.circuito || '',
+        carta_intestatario: cliente.carta_credito?.intestatario || '',
+        carta_numero: cliente.carta_credito?.numero || '',
+        carta_scadenza_mese: cliente.carta_credito?.scadenza_mese || '',
+        carta_scadenza_anno: cliente.carta_credito?.scadenza_anno || '',
+        status: 'bozza'
+      }, token);
+      
+      toast.success(`Cliente ${cliente.nome} ${cliente.cognome} assegnato!`);
+      onAssigned();
+    } catch (e) {
+      toast.error('Errore nell\'assegnazione');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-2 items-end">
+      <div className="flex-1">
+        <Select value={selectedClienteId} onValueChange={setSelectedClienteId}>
+          <SelectTrigger data-testid="assign-client-select">
+            <SelectValue placeholder="Seleziona cliente..." />
+          </SelectTrigger>
+          <SelectContent>
+            {clienti.map(c => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.nome} {c.cognome} - {c.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Button 
+        onClick={handleAssign} 
+        disabled={!selectedClienteId || saving}
+        className="bg-blue-600 hover:bg-blue-700"
+        data-testid="assign-client-btn"
+      >
+        {saving ? 'Salvataggio...' : 'Assegna Cliente'}
+      </Button>
+    </div>
+  );
+}
+
 export function AdminPrenotazioneDetailPage() {
   const { id } = useParams();
   const { token } = useAuth();
@@ -381,6 +454,17 @@ export function AdminPrenotazioneDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* If it's a block, show option to assign a client */}
+              {(prenotazione.cliente_id === 'BLOCCO_CALENDARIO' || prenotazione.cliente_nome === 'BLOCCO CALENDARIO') && (
+                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-sm font-medium text-orange-700 mb-2">Questo è un blocco calendario. Assegna un cliente per trasformarlo in prenotazione:</p>
+                  <ClienteAssignSelect 
+                    token={token} 
+                    prenotazioneId={id}
+                    onAssigned={() => fetchData()}
+                  />
+                </div>
+              )}
               {cliente && (
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
