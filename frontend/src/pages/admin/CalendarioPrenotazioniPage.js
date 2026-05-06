@@ -32,9 +32,9 @@ const formatDateIT = (dateString) => {
 const STATUS_COLORS = {
   bozza: { bg: 'bg-gray-200', text: 'text-gray-700', border: 'border-gray-400' },
   in_verifica: { bg: 'bg-yellow-200', text: 'text-yellow-800', border: 'border-yellow-500' },
-  approvata: { bg: 'bg-green-200', text: 'text-green-800', border: 'border-green-500' },
+  approvata: { bg: 'bg-purple-200', text: 'text-purple-800', border: 'border-purple-500' },
   contratto_generato: { bg: 'bg-blue-200', text: 'text-blue-800', border: 'border-blue-500' },
-  consegnato: { bg: 'bg-purple-200', text: 'text-purple-800', border: 'border-purple-500' },
+  consegnato: { bg: 'bg-green-200', text: 'text-green-800', border: 'border-green-500' },
   chiuso: { bg: 'bg-slate-300', text: 'text-slate-700', border: 'border-slate-500' },
   annullata: { bg: 'bg-red-200', text: 'text-red-800', border: 'border-red-500' },
   blocco: { bg: 'bg-orange-200', text: 'text-orange-800', border: 'border-orange-500' }
@@ -58,9 +58,9 @@ const DAYS_IT = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 const STATUS_HUE = {
   bozza: { h: 220, s: 10 },           // Grigio
   in_verifica: { h: 45, s: 85 },      // Giallo
-  approvata: { h: 150, s: 70 },       // Verde
+  approvata: { h: 270, s: 60 },       // Viola
   contratto_generato: { h: 215, s: 80 }, // Blu
-  consegnato: { h: 270, s: 60 },      // Viola
+  consegnato: { h: 150, s: 70 },      // Verde
   chiuso: { h: 210, s: 15 },          // Slate/Grigio
   annullata: { h: 0, s: 75 },         // Rosso
   blocco: { h: 30, s: 85 },           // Arancione
