@@ -634,9 +634,9 @@ export default function ContrattoStampaPage() {
               <div className="border-r border-black p-2">
                 <div className="text-gray-600">Dal:</div>
                 {isEditing ? (
-                  <div className="flex gap-1">
-                    <Input type="date" value={p.data_ritiro} onChange={e => handleDataRitiroChange(e.target.value)} className="h-6 text-xs flex-1" />
-                    <Input type="time" value={p.ora_ritiro} onChange={e => updateField('ora_ritiro', e.target.value)} className="h-6 text-xs w-16" />
+                  <div className="flex flex-col gap-1">
+                    <Input type="date" value={p.data_ritiro} onChange={e => handleDataRitiroChange(e.target.value)} className="h-6 text-xs w-full" />
+                    <Input type="time" value={p.ora_ritiro} onChange={e => updateField('ora_ritiro', e.target.value)} className="h-6 text-xs w-full" />
                   </div>
                 ) : (
                   <div className="font-semibold">{formatDateIT(p.data_ritiro)} {p.ora_ritiro}</div>
@@ -645,9 +645,9 @@ export default function ContrattoStampaPage() {
               <div className="border-r border-black p-2">
                 <div className="text-gray-600">al:</div>
                 {isEditing ? (
-                  <div className="flex gap-1">
-                    <Input type="date" value={p.data_riconsegna} onChange={e => updateField('data_riconsegna', e.target.value)} className="h-6 text-xs flex-1" />
-                    <Input type="time" value={p.ora_riconsegna} onChange={e => updateField('ora_riconsegna', e.target.value)} className="h-6 text-xs w-16" />
+                  <div className="flex flex-col gap-1">
+                    <Input type="date" value={p.data_riconsegna} onChange={e => updateField('data_riconsegna', e.target.value)} className="h-6 text-xs w-full" />
+                    <Input type="time" value={p.ora_riconsegna} onChange={e => updateField('ora_riconsegna', e.target.value)} className="h-6 text-xs w-full" />
                   </div>
                 ) : (
                   <div className="font-semibold">{formatDateIT(p.data_riconsegna)} {p.ora_riconsegna}</div>
@@ -656,7 +656,7 @@ export default function ContrattoStampaPage() {
               <div className="border-r border-black p-2">
                 <div className="text-gray-600">Durata:</div>
                 {isEditing ? (
-                  <Input type="number" min="1" value={p.durata_giorni} onChange={e => handleDurataChange(e.target.value)} className="h-6 text-xs w-12" />
+                  <Input type="number" min="1" value={p.durata_giorni} onChange={e => handleDurataChange(e.target.value)} className="h-6 text-xs w-16" />
                 ) : (
                   <div className="font-semibold">{p.durata_giorni} gg</div>
                 )}
