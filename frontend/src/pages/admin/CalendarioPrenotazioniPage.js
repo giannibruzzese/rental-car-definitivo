@@ -384,17 +384,33 @@ export default function CalendarioPrenotazioniPage() {
 
   // Handle click on a date cell to show day detail
   const handleDateClick = (date) => {
-    const bookings = getBookingsForDate(date);
-    const noteGiorno = getNotesForDate(date);
-    
-    // If there are events, show day detail dialog
-    if (bookings.length > 0 || noteGiorno.length > 0) {
-      setDayDetailDate(date);
-      setShowDayDetailDialog(true);
-    } else {
-      // Otherwise, open new booking dialog
-      openNewBookingDialog(date);
-    }
+    setDayDetailDate(date);
+    setShowDayDetailDialog(true);
+  };
+
+  // Get veicoli with availability info for a specific date
+  const getVeicoliAvailabilityForDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
+    // Get IDs of vehicles occupied on this date (excluding cancelled/closed)
+    const occupatiIds = new Set(
+      prenotazioni
+        .filter(p => 
+          p.status !== 'annullata' && 
+          p.status !== 'chiuso' &&
+          p.veicolo_id &&
+          p.data_ritiro <= dateStr && 
+          dateStr <= p.data_riconsegna
+        )
+        .map(p => p.veicolo_id)
+    );
+
+    const disponibili = veicoli.filter(v => !occupatiIds.has(v.id));
+    const occupati = veicoli.filter(v => occupatiIds.has(v.id));
+    return { disponibili, occupati };
   };
   
   // Open new booking dialog for a specific date
@@ -1362,9 +1378,54 @@ export default function CalendarioPrenotazioniPage() {
               </div>
             )}
             
+            {/* Veicoli disponibili per questa data */}
+            {dayDetailDate && (() => {
+              const { disponibili, occupati } = getVeicoliAvailabilityForDate(dayDetailDate);
+              return (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-slate-700 flex items-center gap-2">
+                    <Car className="w-4 h-4 text-green-600" /> Veicoli disponibili ({disponibili.length}/{veicoli.length})
+                  </h4>
+                  {disponibili.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {disponibili.map(v => (
+                        <div key={v.id} data-testid={`veicolo-disponibile-${v.id}`} className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200">
+                          <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                          <div className="text-xs">
+                            <p className="font-semibold text-slate-900">{v.marca} {v.modello}</p>
+                            <p className="text-slate-600">{v.targa}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">Nessun veicolo disponibile per questa data</p>
+                  )}
+                  {occupati.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-700">
+                        Veicoli occupati ({occupati.length})
+                      </summary>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {occupati.map(v => (
+                          <div key={v.id} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200 opacity-70">
+                            <span className="inline-block w-2 h-2 rounded-full bg-red-400"></span>
+                            <div className="text-xs">
+                              <p className="font-semibold text-slate-700">{v.marca} {v.modello}</p>
+                              <p className="text-slate-500">{v.targa}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Messaggio se vuoto */}
             {dayDetailDate && getBookingsForDate(dayDetailDate).length === 0 && getNotesForDate(dayDetailDate).length === 0 && (
-              <p className="text-center text-slate-500 py-8">Nessun evento per questa data</p>
+              <p className="text-center text-slate-500 text-sm py-2">Nessuna prenotazione o nota per questa data</p>
             )}
           </div>
         </DialogContent>
