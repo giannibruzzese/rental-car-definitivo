@@ -2049,28 +2049,33 @@ async def admin_update_prenotazione(prenotazione_id: str, data: dict, admin: dic
     
     update_data = {k: v for k, v in data.items() if k in allowed_fields}
     
-    # If vehicle changed by ID, check availability and update vehicle data
-    if "veicolo_id" in update_data and update_data["veicolo_id"] != prenotazione.get("veicolo_id"):
+    # Determine effective vehicle and dates for conflict check
+    effective_veicolo_id = update_data.get("veicolo_id", prenotazione.get("veicolo_id"))
+    effective_data_ritiro = update_data.get("data_ritiro", prenotazione.get("data_ritiro"))
+    effective_data_riconsegna = update_data.get("data_riconsegna", prenotazione.get("data_riconsegna"))
+    
+    # Conflict check whenever vehicle OR dates are changed
+    dates_changed = "data_ritiro" in update_data or "data_riconsegna" in update_data
+    vehicle_changed = "veicolo_id" in update_data and update_data["veicolo_id"] != prenotazione.get("veicolo_id")
+    
+    if (dates_changed or vehicle_changed) and effective_veicolo_id and effective_veicolo_id != "generico" and effective_data_ritiro and effective_data_riconsegna:
+        conflict = await db.prenotazioni.find_one({
+            "id": {"$ne": prenotazione_id},
+            "veicolo_id": effective_veicolo_id,
+            "status": {"$nin": ["annullata", "chiuso"]},
+            "$or": [
+                {"data_ritiro": {"$lte": effective_data_riconsegna}, "data_riconsegna": {"$gte": effective_data_ritiro}}
+            ]
+        })
+        if conflict:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Veicolo già prenotato dal {conflict.get('data_ritiro')} al {conflict.get('data_riconsegna')} (Cliente: {conflict.get('cliente_nome', 'N/A')}). Il veicolo è disponibile solo dal giorno dopo la fine del noleggio precedente."
+            )
+    
+    # If vehicle changed by ID, update vehicle data
+    if vehicle_changed:
         new_veicolo_id = update_data["veicolo_id"]
-        data_ritiro = update_data.get("data_ritiro", prenotazione.get("data_ritiro"))
-        data_riconsegna = update_data.get("data_riconsegna", prenotazione.get("data_riconsegna"))
-        
-        # Check if vehicle is already booked for this period
-        if data_ritiro and data_riconsegna:
-            conflict = await db.prenotazioni.find_one({
-                "id": {"$ne": prenotazione_id},
-                "veicolo_id": new_veicolo_id,
-                "status": {"$nin": ["annullata", "chiuso"]},
-                "$or": [
-                    {"data_ritiro": {"$lte": data_riconsegna}, "data_riconsegna": {"$gte": data_ritiro}}
-                ]
-            })
-            if conflict:
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Veicolo già prenotato dal {conflict.get('data_ritiro')} al {conflict.get('data_riconsegna')} (Cliente: {conflict.get('cliente_nome', 'N/A')})"
-                )
-        
         new_vehicle_raw = await db.vehicles.find_one({"id": new_veicolo_id}, {"_id": 0})
         if new_vehicle_raw:
             new_vehicle = normalize_vehicle(new_vehicle_raw)
