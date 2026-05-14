@@ -389,21 +389,32 @@ export default function CalendarioPrenotazioniPage() {
   };
 
   // Get veicoli with availability info for a specific date
+  // Calculates availability for the period [date, date+1] matching default booking duration
   const getVeicoliAvailabilityForDate = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
 
-    // Get IDs of vehicles occupied on this date (excluding cancelled/closed)
+    // Next day (default booking end)
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 1);
+    const nYear = nextDate.getFullYear();
+    const nMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const nDay = String(nextDate.getDate()).padStart(2, '0');
+    const nextStr = `${nYear}-${nMonth}-${nDay}`;
+
+    // Get IDs of vehicles occupied during [dateStr, nextStr] range
+    // A booking overlaps if: booking.data_ritiro <= nextStr AND booking.data_riconsegna >= dateStr
     const occupatiIds = new Set(
       prenotazioni
         .filter(p => 
           p.status !== 'annullata' && 
           p.status !== 'chiuso' &&
           p.veicolo_id &&
-          p.data_ritiro <= dateStr && 
-          dateStr <= p.data_riconsegna
+          p.veicolo_id !== 'generico' &&
+          p.data_ritiro <= nextStr && 
+          p.data_riconsegna >= dateStr
         )
         .map(p => p.veicolo_id)
     );
@@ -1386,7 +1397,7 @@ export default function CalendarioPrenotazioniPage() {
               return (
                 <div className="space-y-2">
                   <h4 className="font-semibold text-slate-700 flex items-center gap-2">
-                    <Car className="w-4 h-4 text-green-600" /> Veicoli disponibili ({disponibili.length}/{totaleAttivi})
+                    <Car className="w-4 h-4 text-green-600" /> Veicoli disponibili per noleggio 1 giorno ({disponibili.length}/{totaleAttivi})
                   </h4>
                   {disponibili.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2">
