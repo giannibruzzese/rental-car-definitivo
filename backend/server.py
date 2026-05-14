@@ -1320,8 +1320,8 @@ async def get_vehicles_disponibili(
 @api_router.get("/vehicles/available-period")
 async def get_vehicles_available_for_period(data_inizio: str, data_fine: str):
     """Get all active vehicles with availability status for a specific period"""
-    # Get all active vehicles (disponibile status)
-    all_vehicles = await db.vehicles.find({"status": {"$in": ["disponibile", "available"]}}, {"_id": 0}).to_list(1000)
+    # Get all active vehicles (any status except maintenance/out-of-service)
+    all_vehicles = await db.vehicles.find({"status": {"$nin": ["manutenzione", "fuori_servizio"]}}, {"_id": 0}).to_list(1000)
     
     # Get all bookings that overlap with the requested period
     query = {
