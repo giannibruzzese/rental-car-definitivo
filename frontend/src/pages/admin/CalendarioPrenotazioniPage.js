@@ -216,7 +216,7 @@ export default function CalendarioPrenotazioniPage() {
     try {
       const [prenotazioniRes, veicoliRes, clientiRes, noteRes] = await Promise.all([
         axios.get(`${API}/api/prenotazioni`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API}/api/vehicles?status=disponibile`),
+        axios.get(`${API}/api/vehicles`),
         axios.get(`${API}/api/clienti`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API}/api/calendario/note`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] }))
       ]);
@@ -408,9 +408,10 @@ export default function CalendarioPrenotazioniPage() {
         .map(p => p.veicolo_id)
     );
 
-    const disponibili = veicoli.filter(v => !occupatiIds.has(v.id));
+    const disponibili = veicoli.filter(v => v.status !== 'manutenzione' && !occupatiIds.has(v.id));
     const occupati = veicoli.filter(v => occupatiIds.has(v.id));
-    return { disponibili, occupati };
+    const manutenzione = veicoli.filter(v => v.status === 'manutenzione' && !occupatiIds.has(v.id));
+    return { disponibili, occupati, manutenzione };
   };
   
   // Open new booking dialog for a specific date
@@ -1380,11 +1381,12 @@ export default function CalendarioPrenotazioniPage() {
             
             {/* Veicoli disponibili per questa data */}
             {dayDetailDate && (() => {
-              const { disponibili, occupati } = getVeicoliAvailabilityForDate(dayDetailDate);
+              const { disponibili, occupati, manutenzione } = getVeicoliAvailabilityForDate(dayDetailDate);
+              const totaleAttivi = veicoli.filter(v => v.status !== 'manutenzione').length;
               return (
                 <div className="space-y-2">
                   <h4 className="font-semibold text-slate-700 flex items-center gap-2">
-                    <Car className="w-4 h-4 text-green-600" /> Veicoli disponibili ({disponibili.length}/{veicoli.length})
+                    <Car className="w-4 h-4 text-green-600" /> Veicoli disponibili ({disponibili.length}/{totaleAttivi})
                   </h4>
                   {disponibili.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2">
@@ -1410,6 +1412,24 @@ export default function CalendarioPrenotazioniPage() {
                         {occupati.map(v => (
                           <div key={v.id} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200 opacity-70">
                             <span className="inline-block w-2 h-2 rounded-full bg-red-400"></span>
+                            <div className="text-xs">
+                              <p className="font-semibold text-slate-700">{v.marca} {v.modello}</p>
+                              <p className="text-slate-500">{v.targa}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                  {manutenzione.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="text-xs text-amber-600 cursor-pointer hover:text-amber-700">
+                        In manutenzione ({manutenzione.length})
+                      </summary>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {manutenzione.map(v => (
+                          <div key={v.id} className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200 opacity-70">
+                            <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
                             <div className="text-xs">
                               <p className="font-semibold text-slate-700">{v.marca} {v.modello}</p>
                               <p className="text-slate-500">{v.targa}</p>
