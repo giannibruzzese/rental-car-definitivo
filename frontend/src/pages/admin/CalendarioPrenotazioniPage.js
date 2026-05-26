@@ -248,7 +248,9 @@ export default function CalendarioPrenotazioniPage() {
         const res = await axios.get(`${API}/api/vehicles/available-period`, {
           params: {
             data_inizio: newBooking.data_ritiro,
-            data_fine: newBooking.data_riconsegna
+            data_fine: newBooking.data_riconsegna,
+            ora_inizio: newBooking.ora_ritiro || '09:00',
+            ora_fine: newBooking.ora_riconsegna || '18:00'
           }
         });
         setVeicoliDisponibili(res.data);
@@ -261,7 +263,7 @@ export default function CalendarioPrenotazioniPage() {
     };
     
     fetchVeicoliDisponibili();
-  }, [newBooking.data_ritiro, newBooking.data_riconsegna, veicoli]);
+  }, [newBooking.data_ritiro, newBooking.data_riconsegna, newBooking.ora_ritiro, newBooking.ora_riconsegna, veicoli]);
 
   // Calcola prezzo dinamico quando cambiano veicolo o date
   useEffect(() => {

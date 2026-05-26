@@ -1318,12 +1318,19 @@ async def get_vehicles_disponibili(
     return [normalize_vehicle(v) for v in available]
 
 @api_router.get("/vehicles/available-period")
-async def get_vehicles_available_for_period(data_inizio: str, data_fine: str):
-    """Get all active vehicles with availability status for a specific period"""
+async def get_vehicles_available_for_period(
+    data_inizio: str, 
+    data_fine: str,
+    ora_inizio: str = "09:00",
+    ora_fine: str = "18:00"
+):
+    """Get all active vehicles with availability status for a specific period.
+    Considers hours when bookings touch on the same day (e.g. return at 09:00 → can rent from 09:00+ same day).
+    """
     # Get all active vehicles (any status except maintenance/out-of-service)
     all_vehicles = await db.vehicles.find({"status": {"$nin": ["manutenzione", "fuori_servizio"]}}, {"_id": 0}).to_list(1000)
     
-    # Get all bookings that overlap with the requested period
+    # Get all candidate bookings that *might* overlap with the requested period (broad date filter)
     query = {
         "status": {"$nin": ["annullata", "chiuso"]},
         "$or": [
@@ -1336,8 +1343,33 @@ async def get_vehicles_available_for_period(data_inizio: str, data_fine: str):
         ]
     }
     
-    overlapping_bookings = await db.prenotazioni.find(query, {"veicolo_id": 1}).to_list(1000)
-    booked_vehicle_ids = set(b.get("veicolo_id") for b in overlapping_bookings if b.get("veicolo_id") and b.get("veicolo_id") != "generico")
+    candidates = await db.prenotazioni.find(query, {"veicolo_id": 1, "data_ritiro": 1, "ora_ritiro": 1, "data_riconsegna": 1, "ora_riconsegna": 1}).to_list(1000)
+    
+    # Filter with hour-precision: a booking truly overlaps if the datetime intervals intersect
+    def to_dt(d, t):
+        try:
+            return datetime.strptime(f"{d} {t or '00:00'}", "%Y-%m-%d %H:%M")
+        except Exception:
+            return None
+    
+    new_start = to_dt(data_inizio, ora_inizio)
+    new_end = to_dt(data_fine, ora_fine)
+    
+    booked_vehicle_ids = set()
+    for b in candidates:
+        vid = b.get("veicolo_id")
+        if not vid or vid == "generico":
+            continue
+        b_start = to_dt(b.get("data_ritiro"), b.get("ora_ritiro") or "09:00")
+        b_end = to_dt(b.get("data_riconsegna"), b.get("ora_riconsegna") or "18:00")
+        if not (b_start and b_end and new_start and new_end):
+            # If parsing fails fall back to date-only conflict
+            booked_vehicle_ids.add(vid)
+            continue
+        # True overlap: existing.start < new.end AND existing.end > new.start
+        # If existing return time == new pickup time it's NOT a conflict (vehicle just returned)
+        if b_start < new_end and b_end > new_start:
+            booked_vehicle_ids.add(vid)
     
     # Return only available (not booked) vehicles
     available = [v for v in all_vehicles if v.get("id") not in booked_vehicle_ids]
@@ -1825,22 +1857,42 @@ async def admin_create_prenotazione(data: dict, admin: dict = Depends(get_admin_
         prezzo_km_extra = veicolo.get("prezzo_km_extra", 0.20)
         deposito_cauzionale = veicolo.get("deposito_cauzionale", 500)
     
-    # Check vehicle availability for the requested period
+    # Check vehicle availability for the requested period (hour-precision)
     if not is_blocco_calendario:
         data_ritiro = data.get('data_ritiro')
         data_riconsegna = data.get('data_riconsegna')
+        ora_ritiro = data.get('ora_ritiro', '09:00')
+        ora_riconsegna = data.get('ora_riconsegna', '18:00')
         if data_ritiro and data_riconsegna:
-            conflict = await db.prenotazioni.find_one({
+            # Find date-overlapping bookings, then check hours
+            candidates = await db.prenotazioni.find({
                 "veicolo_id": veicolo_id,
                 "status": {"$nin": ["annullata", "chiuso"]},
-                "$or": [
-                    {"data_ritiro": {"$lte": data_riconsegna}, "data_riconsegna": {"$gte": data_ritiro}}
-                ]
-            })
+                "data_ritiro": {"$lte": data_riconsegna},
+                "data_riconsegna": {"$gte": data_ritiro}
+            }).to_list(100)
+            
+            try:
+                new_start = datetime.strptime(f"{data_ritiro} {ora_ritiro}", "%Y-%m-%d %H:%M")
+                new_end = datetime.strptime(f"{data_riconsegna} {ora_riconsegna}", "%Y-%m-%d %H:%M")
+                conflict = None
+                for c in candidates:
+                    try:
+                        c_start = datetime.strptime(f"{c.get('data_ritiro')} {c.get('ora_ritiro') or '09:00'}", "%Y-%m-%d %H:%M")
+                        c_end = datetime.strptime(f"{c.get('data_riconsegna')} {c.get('ora_riconsegna') or '18:00'}", "%Y-%m-%d %H:%M")
+                    except Exception:
+                        conflict = c
+                        break
+                    if c_start < new_end and c_end > new_start:
+                        conflict = c
+                        break
+            except Exception:
+                conflict = candidates[0] if candidates else None
+            
             if conflict:
                 raise HTTPException(
                     status_code=400, 
-                    detail=f"Veicolo già prenotato dal {conflict.get('data_ritiro')} al {conflict.get('data_riconsegna')} (Cliente: {conflict.get('cliente_nome', 'N/A')})"
+                    detail=f"Veicolo già prenotato dal {conflict.get('data_ritiro')} {conflict.get('ora_ritiro','')} al {conflict.get('data_riconsegna')} {conflict.get('ora_riconsegna','')} (Cliente: {conflict.get('cliente_nome', 'N/A')})"
                 )
     
     # Calculate duration based on actual hours (1 day = 24h, any excess = +1 day)
@@ -2053,24 +2105,45 @@ async def admin_update_prenotazione(prenotazione_id: str, data: dict, admin: dic
     effective_veicolo_id = update_data.get("veicolo_id", prenotazione.get("veicolo_id"))
     effective_data_ritiro = update_data.get("data_ritiro", prenotazione.get("data_ritiro"))
     effective_data_riconsegna = update_data.get("data_riconsegna", prenotazione.get("data_riconsegna"))
+    effective_ora_ritiro = update_data.get("ora_ritiro", prenotazione.get("ora_ritiro") or "09:00")
+    effective_ora_riconsegna = update_data.get("ora_riconsegna", prenotazione.get("ora_riconsegna") or "18:00")
     
-    # Conflict check whenever vehicle OR dates are changed
+    # Conflict check whenever vehicle OR dates OR hours are changed
     dates_changed = "data_ritiro" in update_data or "data_riconsegna" in update_data
+    hours_changed = "ora_ritiro" in update_data or "ora_riconsegna" in update_data
     vehicle_changed = "veicolo_id" in update_data and update_data["veicolo_id"] != prenotazione.get("veicolo_id")
     
-    if (dates_changed or vehicle_changed) and effective_veicolo_id and effective_veicolo_id != "generico" and effective_data_ritiro and effective_data_riconsegna:
-        conflict = await db.prenotazioni.find_one({
+    if (dates_changed or hours_changed or vehicle_changed) and effective_veicolo_id and effective_veicolo_id != "generico" and effective_data_ritiro and effective_data_riconsegna:
+        # Find date-overlapping candidates, then check hours
+        candidates = await db.prenotazioni.find({
             "id": {"$ne": prenotazione_id},
             "veicolo_id": effective_veicolo_id,
             "status": {"$nin": ["annullata", "chiuso"]},
-            "$or": [
-                {"data_ritiro": {"$lte": effective_data_riconsegna}, "data_riconsegna": {"$gte": effective_data_ritiro}}
-            ]
-        })
+            "data_ritiro": {"$lte": effective_data_riconsegna},
+            "data_riconsegna": {"$gte": effective_data_ritiro}
+        }).to_list(100)
+        
+        conflict = None
+        try:
+            new_start = datetime.strptime(f"{effective_data_ritiro} {effective_ora_ritiro}", "%Y-%m-%d %H:%M")
+            new_end = datetime.strptime(f"{effective_data_riconsegna} {effective_ora_riconsegna}", "%Y-%m-%d %H:%M")
+            for c in candidates:
+                try:
+                    c_start = datetime.strptime(f"{c.get('data_ritiro')} {c.get('ora_ritiro') or '09:00'}", "%Y-%m-%d %H:%M")
+                    c_end = datetime.strptime(f"{c.get('data_riconsegna')} {c.get('ora_riconsegna') or '18:00'}", "%Y-%m-%d %H:%M")
+                except Exception:
+                    conflict = c
+                    break
+                if c_start < new_end and c_end > new_start:
+                    conflict = c
+                    break
+        except Exception:
+            conflict = candidates[0] if candidates else None
+        
         if conflict:
             raise HTTPException(
                 status_code=400, 
-                detail=f"Veicolo già prenotato dal {conflict.get('data_ritiro')} al {conflict.get('data_riconsegna')} (Cliente: {conflict.get('cliente_nome', 'N/A')}). Il veicolo è disponibile solo dal giorno dopo la fine del noleggio precedente."
+                detail=f"Veicolo già prenotato dal {conflict.get('data_ritiro')} {conflict.get('ora_ritiro','')} al {conflict.get('data_riconsegna')} {conflict.get('ora_riconsegna','')} (Cliente: {conflict.get('cliente_nome', 'N/A')}). Il veicolo è disponibile dopo l'orario di riconsegna del noleggio precedente."
             )
     
     # If vehicle changed by ID, update vehicle data
