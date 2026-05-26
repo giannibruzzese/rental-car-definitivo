@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { 
   Car, LayoutDashboard, CalendarDays, FileText, Users, Settings, LogOut, Menu, X,
-  ChevronRight, AlertCircle, Clock, CheckCircle, Truck, Calendar
+  ChevronRight, AlertCircle, Clock, CheckCircle, Truck, Calendar, ListOrdered
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,6 +26,7 @@ export const AdminSidebar = ({ isOpen, onClose }) => {
     { icon: Car, label: 'Flotta Veicoli', path: '/admin/veicoli' },
     { icon: CalendarDays, label: 'Prenotazioni', path: '/admin/prenotazioni' },
     { icon: Calendar, label: 'Calendario', path: '/admin/calendario' },
+    { icon: ListOrdered, label: 'Legenda Prenotazioni', path: '/admin/legenda-prenotazioni' },
     { icon: FileText, label: 'Contratti', path: '/admin/contratti' },
     { icon: Users, label: 'Clienti', path: '/admin/clienti' },
     { icon: Settings, label: 'Impostazioni', path: '/admin/impostazioni' },

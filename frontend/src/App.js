@@ -16,6 +16,7 @@ import AdminPrenotazioniPage, { AdminPrenotazioneDetailPage } from "./pages/admi
 import AdminClientiPage from "./pages/admin/AdminClientiPage";
 import AdminImpostazioniPage from "./pages/admin/AdminImpostazioniPage";
 import CalendarioPrenotazioniPage from "./pages/admin/CalendarioPrenotazioniPage";
+import LegendaPrenotazioniPage from "./pages/admin/LegendaPrenotazioniPage";
 import ContrattoStampaPage from "./pages/admin/ContrattoStampaPage";
 import StoricoNoleggiPage from "./pages/admin/StoricoNoleggiPage";
 
@@ -46,6 +47,7 @@ function App() {
             <Route path="prenotazioni" element={<AdminPrenotazioniPage />} />
             <Route path="prenotazioni/:id" element={<AdminPrenotazioneDetailPage />} />
             <Route path="calendario" element={<CalendarioPrenotazioniPage />} />
+            <Route path="legenda-prenotazioni" element={<LegendaPrenotazioniPage />} />
             <Route path="contratti" element={<AdminPrenotazioniPage />} />
             <Route path="clienti" element={<AdminClientiPage />} />
             <Route path="clienti/:clienteId/storico" element={<StoricoNoleggiPage />} />
