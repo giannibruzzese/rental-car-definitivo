@@ -1366,9 +1366,10 @@ async def get_vehicles_available_for_period(
             # If parsing fails fall back to date-only conflict
             booked_vehicle_ids.add(vid)
             continue
-        # True overlap: existing.start < new.end AND existing.end > new.start
-        # If existing return time == new pickup time it's NOT a conflict (vehicle just returned)
-        if b_start < new_end and b_end > new_start:
+        # Add 1-hour buffer after return (vehicle needs to be cleaned/inspected)
+        b_end_with_buffer = b_end + timedelta(hours=1)
+        # True overlap: existing.start < new.end AND existing.end+1h > new.start
+        if b_start < new_end and b_end_with_buffer > new_start:
             booked_vehicle_ids.add(vid)
     
     # Return only available (not booked) vehicles
@@ -1883,7 +1884,9 @@ async def admin_create_prenotazione(data: dict, admin: dict = Depends(get_admin_
                     except Exception:
                         conflict = c
                         break
-                    if c_start < new_end and c_end > new_start:
+                    # 1-hour buffer after return
+                    c_end_buf = c_end + timedelta(hours=1)
+                    if c_start < new_end and c_end_buf > new_start:
                         conflict = c
                         break
             except Exception:
@@ -2134,7 +2137,9 @@ async def admin_update_prenotazione(prenotazione_id: str, data: dict, admin: dic
                 except Exception:
                     conflict = c
                     break
-                if c_start < new_end and c_end > new_start:
+                # 1-hour buffer after return
+                c_end_buf = c_end + timedelta(hours=1)
+                if c_start < new_end and c_end_buf > new_start:
                     conflict = c
                     break
         except Exception:
