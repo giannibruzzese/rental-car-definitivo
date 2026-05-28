@@ -1153,12 +1153,6 @@ export default function ContrattoStampaPage() {
                 <div className="font-bold text-xs mb-2">RIEPILOGO ECONOMICO</div>
                 <table className="w-full text-xs">
                   <tbody>
-                    <tr>
-                      <td className="py-0.5">Tariffa giornaliera:</td>
-                      <td className="text-right">
-                        {(p.tariffa_giornaliera || (p.tariffa_base / (p.durata_giorni || 1))).toFixed(2)} €/gg
-                      </td>
-                    </tr>
                     {/* Tariffa Stagionale */}
                     {p.tariffa_stagionale && (
                       <tr>
