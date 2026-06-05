@@ -98,6 +98,20 @@ export default function ContrattoStampaPage() {
         setPrenotazione(prenotazioneRes.data);
         setEditedData(prenotazioneRes.data);
         
+        // Auto-populate km_uscita with last registered km of the vehicle (from previous checkouts)
+        // Only if km_uscita is not already set on this booking
+        if (prenotazioneRes.data.veicolo_id && !prenotazioneRes.data.km_uscita) {
+          try {
+            const vRes = await axios.get(`${API}/api/vehicles/${prenotazioneRes.data.veicolo_id}`);
+            const ultimiKm = vRes.data?.km_attuali;
+            if (ultimiKm !== undefined && ultimiKm !== null) {
+              setEditedData(prev => ({ ...prev, km_uscita: String(ultimiKm) }));
+            }
+          } catch (e) {
+            console.warn('Impossibile caricare km veicolo:', e);
+          }
+        }
+        
         // Fetch cliente
         if (prenotazioneRes.data.cliente_id) {
           const clienteRes = await axios.get(`${API}/api/clienti/${prenotazioneRes.data.cliente_id}`, {
@@ -1153,7 +1167,7 @@ export default function ContrattoStampaPage() {
                 <div className="font-bold text-xs mb-2">RIEPILOGO ECONOMICO</div>
                 <table className="w-full text-xs">
                   <tbody>
-                    {/* Tariffa Stagionale */}
+                    {/* Tariffa Stagionale (info read-only) */}
                     {p.tariffa_stagionale && (
                       <tr>
                         <td colSpan="2" className="py-0.5">
@@ -1169,6 +1183,36 @@ export default function ContrattoStampaPage() {
                         </td>
                       </tr>
                     )}
+                    {/* Tariffa giornaliera - editable, riflette la stagionale ma può essere sovrascritta solo per questo contratto */}
+                    <tr>
+                      <td className="py-0.5">Tariffa giornaliera:</td>
+                      <td className="text-right">
+                        {isEditing ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Input 
+                              type="number" 
+                              step="0.01" 
+                              value={p.tariffa_giornaliera ?? ((p.tariffa_base || 0) / (p.durata_giorni || 1)) ?? ''} 
+                              onChange={e => {
+                                const nuovaTariffa = parseFloat(e.target.value) || 0;
+                                const durata = p.durata_giorni || 1;
+                                setEditedData(prev => ({
+                                  ...prev,
+                                  tariffa_giornaliera: nuovaTariffa,
+                                  tariffa_base: nuovaTariffa * durata,
+                                  totale_noleggio: (nuovaTariffa * durata) + (prev.totale_servizi || 0)
+                                }));
+                              }} 
+                              className="h-5 text-xs w-20 text-right" 
+                              data-testid="input-tariffa-giornaliera"
+                            />
+                            <span>€/gg</span>
+                          </span>
+                        ) : (
+                          <>{(p.tariffa_giornaliera || (p.tariffa_base / (p.durata_giorni || 1)) || 0).toFixed(2)} €/gg</>
+                        )}
+                      </td>
+                    </tr>
                     <tr>
                       <td className="py-0.5">Tariffa base ({p.durata_giorni} gg):</td>
                       <td className="text-right">
