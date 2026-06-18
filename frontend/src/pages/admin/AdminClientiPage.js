@@ -237,9 +237,14 @@ export default function AdminClientiPage() {
     }
   };
 
-  const filtered = clienti.filter(c => 
-    `${c.nome} ${c.cognome} ${c.email} ${c.codice_fiscale} ${c.cellulare}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = clienti
+    .filter(c => 
+      `${c.nome} ${c.cognome} ${c.email} ${c.codice_fiscale} ${c.cellulare}`.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => 
+      (a.cognome || '').localeCompare(b.cognome || '', 'it', { sensitivity: 'base' }) ||
+      (a.nome || '').localeCompare(b.nome || '', 'it', { sensitivity: 'base' })
+    );
 
   return (
     <div className="space-y-6" data-testid="clienti-page">
