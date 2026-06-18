@@ -347,12 +347,12 @@ export default function RegistrationPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>CAP *</Label>
+                  <Label>CAP / ZIP *</Label>
                   <Input 
                     value={formData.cap} 
                     onChange={(e) => handleChange('cap', e.target.value)}
-                    placeholder="00100"
-                    maxLength={5}
+                    placeholder="00100 / SW1A 1AA / 75001"
+                    maxLength={10}
                     data-testid="reg-cap"
                   />
                 </div>

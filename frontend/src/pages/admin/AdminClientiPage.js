@@ -804,7 +804,7 @@ export default function AdminClientiPage() {
                 </div>
                 <div className="space-y-1">
                   <Label>CAP</Label>
-                  <Input value={editClientData.cap || ''} onChange={e => setEditClientData({...editClientData, cap: e.target.value})} maxLength={5} />
+                  <Input value={editClientData.cap || ''} onChange={e => setEditClientData({...editClientData, cap: e.target.value})} maxLength={10} placeholder="CAP / ZIP" />
                 </div>
               </div>
 

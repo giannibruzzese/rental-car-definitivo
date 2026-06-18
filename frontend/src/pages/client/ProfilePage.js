@@ -164,7 +164,7 @@ export default function ProfilePage() {
               </div>
               <div className="space-y-1">
                 <Label>CAP</Label>
-                <Input data-testid="profile-cap" value={profile.cap || ''} onChange={e => updateField('cap', e.target.value)} maxLength={5} />
+                <Input data-testid="profile-cap" value={profile.cap || ''} onChange={e => updateField('cap', e.target.value)} maxLength={10} placeholder="CAP / ZIP" />
               </div>
             </div>
           </CardContent>
