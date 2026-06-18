@@ -743,6 +743,20 @@ export default function ContrattoStampaPage() {
                       <span>{clienteContratto?.indirizzo}, {clienteContratto?.cap} {clienteContratto?.comune} ({clienteContratto?.provincia})</span>
                     )}
                   </p>
+                  <p>
+                    <span className="text-gray-600">Telefono:</span>{' '}
+                    {isEditing ? (
+                      <Input 
+                        value={clienteContratto?.cellulare || clienteContratto?.telefono || ''} 
+                        onChange={e => updateClienteField('cellulare', e.target.value)} 
+                        className="h-5 text-xs w-32 inline" 
+                        placeholder="Cellulare / Telefono" 
+                        data-testid="input-cliente-telefono"
+                      />
+                    ) : (
+                      <strong>{clienteContratto?.cellulare || clienteContratto?.telefono || '—'}</strong>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>
