@@ -563,12 +563,12 @@ export default function AdminClientiPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>CAP</Label>
+                  <Label>CAP / ZIP</Label>
                   <Input 
                     value={nuovoCliente.cap}
                     onChange={(e) => setNuovoCliente({...nuovoCliente, cap: e.target.value})}
-                    placeholder="00100"
-                    maxLength={5}
+                    placeholder="00100 / SW1A 1AA / 75001"
+                    maxLength={10}
                   />
                 </div>
                 <div className="space-y-1">
