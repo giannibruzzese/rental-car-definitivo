@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
@@ -288,23 +289,25 @@ export default function LegendaPrenotazioniPage() {
                       const startsBeforeMonth = b.data_ritiro < monthStart;
                       const endsAfterMonth = b.data_riconsegna > monthEnd;
                       return (
-                        <div
+                        <Link
                           key={b.id}
-                          className="absolute top-2 bottom-2 rounded-md px-2 flex items-center text-xs font-semibold overflow-hidden shadow-sm border-l-4 cursor-pointer hover:opacity-90 transition-opacity"
+                          to={`/admin/contratto/${b.id}`}
+                          className="absolute top-2 bottom-2 rounded-md px-2 flex items-center text-xs font-semibold overflow-hidden shadow-sm border-l-4 cursor-pointer hover:opacity-90 hover:shadow-md hover:ring-2 hover:ring-blue-400 transition-all"
                           style={{
                             left,
                             width: Math.max(width, 30),
                             backgroundColor: shade.bg,
                             borderLeftColor: shade.border,
                             color: shade.text,
+                            textDecoration: 'none',
                           }}
-                          title={`${label} - ${b.data_ritiro} → ${b.data_riconsegna} (${status.replace('_', ' ')})`}
+                          title={`${label} - ${b.data_ritiro} → ${b.data_riconsegna} (${status.replace('_', ' ')}) — Clicca per aprire il contratto`}
                           data-testid={`booking-banner-${b.id}`}
                         >
                           {startsBeforeMonth && <span className="mr-1">←</span>}
                           <span className="truncate">{label}</span>
                           {endsAfterMonth && <span className="ml-1">→</span>}
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>
