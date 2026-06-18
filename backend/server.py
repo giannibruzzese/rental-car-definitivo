@@ -1409,6 +1409,17 @@ async def delete_calendario_nota(nota_id: str, admin: dict = Depends(get_admin_u
         raise HTTPException(status_code=404, detail="Nota non trovata")
     return {"message": "Nota eliminata"}
 
+@api_router.put("/calendario/note/{nota_id}")
+async def update_calendario_nota(nota_id: str, data: dict, admin: dict = Depends(get_admin_user)):
+    """Update an existing calendar note"""
+    allowed = {k: v for k, v in data.items() if k in ("titolo", "contenuto", "data", "colore")}
+    if not allowed:
+        raise HTTPException(status_code=400, detail="Nessun campo da aggiornare")
+    result = await db.calendario_note.update_one({"id": nota_id}, {"$set": allowed})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Nota non trovata")
+    return {"message": "Nota aggiornata"}
+
 @api_router.get("/vehicles/{vehicle_id}")
 async def get_vehicle(vehicle_id: str):
     vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})

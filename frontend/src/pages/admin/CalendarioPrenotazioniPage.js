@@ -452,23 +452,33 @@ export default function CalendarioPrenotazioniPage() {
     setShowNewBookingDialog(true);
   };
   
-  // Open note dialog
-  const openNoteDialog = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-    
-    setNoteData({
-      titolo: '',
-      contenuto: '',
-      data: dateStr,
-      colore: 'gray'
-    });
+  // Open note dialog (for new note or edit existing)
+  const openNoteDialog = (date, existingNote = null) => {
+    if (existingNote) {
+      setNoteData({
+        id: existingNote.id,
+        titolo: existingNote.titolo || '',
+        contenuto: existingNote.contenuto || '',
+        data: existingNote.data,
+        colore: existingNote.colore || 'gray'
+      });
+    } else {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
+      setNoteData({
+        titolo: '',
+        contenuto: '',
+        data: dateStr,
+        colore: 'gray'
+      });
+    }
     setShowNoteDialog(true);
   };
   
-  // Save note
+  // Save note (create or update)
   const handleSaveNote = async () => {
     if (!noteData.titolo) {
       toast.error('Inserisci un titolo per la nota');
@@ -476,10 +486,22 @@ export default function CalendarioPrenotazioniPage() {
     }
     
     try {
-      await axios.post(`${API}/api/calendario/note`, noteData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success('Nota salvata!');
+      if (noteData.id) {
+        // Update existing note
+        await axios.put(`${API}/api/calendario/note/${noteData.id}`, {
+          titolo: noteData.titolo,
+          contenuto: noteData.contenuto,
+          colore: noteData.colore,
+          data: noteData.data
+        }, { headers: { Authorization: `Bearer ${token}` } });
+        toast.success('Nota aggiornata!');
+      } else {
+        // Create new note
+        await axios.post(`${API}/api/calendario/note`, noteData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Nota salvata!');
+      }
       setShowNoteDialog(false);
       fetchData();
     } catch (error) {
@@ -1373,18 +1395,32 @@ export default function CalendarioPrenotazioniPage() {
                   return (
                   <div key={n.id} className="p-3 rounded-lg" style={{ ...nShade.bgStyle, ...nShade.fullBorderStyle }}>
                     <div className="flex items-start justify-between">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-semibold" style={nShade.textStyle}>{n.titolo}</p>
                         {n.contenuto && <p className="text-sm text-slate-600 mt-1">{n.contenuto}</p>}
                       </div>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleDeleteNote(n.id)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => { setShowDayDetailDialog(false); openNoteDialog(dayDetailDate, n); }}
+                          data-testid={`edit-nota-${n.id}`}
+                          title="Modifica nota"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleDeleteNote(n.id)}
+                          data-testid={`delete-nota-${n.id}`}
+                          title="Elimina nota"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   );
@@ -1470,7 +1506,7 @@ export default function CalendarioPrenotazioniPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <StickyNote className="w-5 h-5 text-yellow-600" />
-              Nuova Nota
+              {noteData.id ? 'Modifica Nota' : 'Nuova Nota'}
               {noteData.data && (
                 <span className="text-sm font-normal text-slate-500">
                   - {formatDateIT(noteData.data)}
