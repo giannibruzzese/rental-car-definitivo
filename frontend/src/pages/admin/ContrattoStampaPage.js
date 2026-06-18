@@ -700,8 +700,9 @@ export default function ContrattoStampaPage() {
                 <div className="text-xs space-y-1">
                   <p><span className="text-gray-600">Ragione sociale:</span> <strong>{AGENCY.nome}</strong></p>
                   <p><span className="text-gray-600">Indirizzo:</span> {AGENCY.indirizzo} - {AGENCY.cap} {AGENCY.comune} ({AGENCY.provincia})</p>
-                  <p><span className="text-gray-600">P.IVA / CF:</span> P.IVA {AGENCY.piva} CF {AGENCY.cf}</p>
-                  <p><span className="text-gray-600">Contatti:</span> Tel. {AGENCY.telefono} Email: {AGENCY.email}</p>
+                  <p><span className="text-gray-600">P.IVA:</span> {AGENCY.piva}</p>
+                  <p><span className="text-gray-600">Contatti:</span> Tel. {AGENCY.telefono}</p>
+                  <p><span className="text-gray-600">Email:</span> {AGENCY.email} - soverato.rental@libero.it</p>
                 </div>
               </div>
               {/* Locatario */}
@@ -755,6 +756,20 @@ export default function ContrattoStampaPage() {
                       />
                     ) : (
                       <strong>{clienteContratto?.cellulare || clienteContratto?.telefono || '—'}</strong>
+                    )}
+                  </p>
+                  <p>
+                    <span className="text-gray-600">Email:</span>{' '}
+                    {isEditing ? (
+                      <Input 
+                        value={clienteContratto?.email || ''} 
+                        onChange={e => updateClienteField('email', e.target.value)} 
+                        className="h-5 text-xs w-48 inline" 
+                        placeholder="email@esempio.com" 
+                        data-testid="input-cliente-email"
+                      />
+                    ) : (
+                      <span>{clienteContratto?.email || '—'}</span>
                     )}
                   </p>
                 </div>
