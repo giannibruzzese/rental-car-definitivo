@@ -291,7 +291,7 @@ export default function AdminClientiPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nome</TableHead>
+                    <TableHead>Cognome / Nome</TableHead>
                     <TableHead>Credenziali Accesso</TableHead>
                     <TableHead>Codice Fiscale</TableHead>
                     <TableHead>Residenza</TableHead>
@@ -304,7 +304,7 @@ export default function AdminClientiPage() {
                     <TableRow key={c.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{c.nome} {c.cognome}</p>
+                          <p className="font-medium"><strong>{c.cognome}</strong> {c.nome}</p>
                           <p className="text-xs text-slate-500">Nato/a: {formatDateIT(c.data_nascita)} a {c.luogo_nascita}</p>
                           <p className="text-xs text-slate-500 mt-1"><Phone className="w-3 h-3 inline mr-1" />{c.cellulare}</p>
                         </div>
