@@ -181,19 +181,20 @@ export default function ProfilePage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Numero Patente *</Label>
-                <Input data-testid="profile-patente-numero" value={pat.numero || ''} onChange={e => updatePatenteField('numero', e.target.value.toUpperCase())} />
+                <Input data-testid="profile-patente-numero" value={pat.numero || ''} onChange={e => updatePatenteField('numero', e.target.value)} maxLength={30} placeholder="AB1234567X / DVLA-XXX / ecc." />
               </div>
               <div className="space-y-1">
                 <Label>Categoria *</Label>
-                <Select value={pat.categoria || ''} onValueChange={v => updatePatenteField('categoria', v)}>
-                  <SelectTrigger data-testid="profile-patente-categoria"><SelectValue placeholder="Cat." /></SelectTrigger>
-                  <SelectContent>{LICENSE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                </Select>
+                <Input data-testid="profile-patente-categoria" value={pat.categoria || ''} onChange={e => updatePatenteField('categoria', e.target.value.toUpperCase())} placeholder="B, A, US Class C..." maxLength={20} className="uppercase" />
               </div>
             </div>
             <div className="space-y-1">
               <Label>Rilasciata da</Label>
-              <Input data-testid="profile-patente-rilasciata" value={pat.rilasciata_da || ''} onChange={e => updatePatenteField('rilasciata_da', e.target.value)} placeholder="Es: MCTC Roma" />
+              <Input data-testid="profile-patente-rilasciata" value={pat.rilasciata_da || ''} onChange={e => updatePatenteField('rilasciata_da', e.target.value)} placeholder="MCTC / DVLA / DMV..." />
+            </div>
+            <div className="space-y-1">
+              <Label>Paese di rilascio</Label>
+              <Input data-testid="profile-patente-paese" value={pat.paese || ''} onChange={e => updatePatenteField('paese', e.target.value)} placeholder="Italia / UK / USA / ..." />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">

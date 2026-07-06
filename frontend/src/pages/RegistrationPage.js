@@ -462,21 +462,22 @@ export default function RegistrationPage() {
                   <Label>Numero Patente *</Label>
                   <Input 
                     value={formData.patente_numero} 
-                    onChange={(e) => handleChange('patente_numero', e.target.value.toUpperCase())}
-                    placeholder="AB1234567X"
+                    onChange={(e) => handleChange('patente_numero', e.target.value)}
+                    placeholder="AB1234567X / DVLA-XXX / ecc."
+                    maxLength={30}
                     data-testid="reg-pat-numero"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Categoria *</Label>
-                  <Select value={formData.patente_categoria} onValueChange={(v) => handleChange('patente_categoria', v)}>
-                    <SelectTrigger data-testid="reg-pat-categoria">
-                      <SelectValue placeholder="Seleziona..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LICENSE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Input 
+                    value={formData.patente_categoria} 
+                    onChange={(e) => handleChange('patente_categoria', e.target.value.toUpperCase())}
+                    placeholder="B, A, US Class C, ..."
+                    maxLength={20}
+                    className="uppercase"
+                    data-testid="reg-pat-categoria"
+                  />
                 </div>
               </div>
               

@@ -595,39 +595,35 @@ export default function AdminClientiPage() {
                   <Label>Numero Patente</Label>
                   <Input 
                     value={nuovoCliente.patente.numero}
-                    onChange={(e) => setNuovoCliente({...nuovoCliente, patente: {...nuovoCliente.patente, numero: e.target.value.toUpperCase()}})}
-                    placeholder="AB1234567X"
-                    className="uppercase"
+                    onChange={(e) => setNuovoCliente({...nuovoCliente, patente: {...nuovoCliente.patente, numero: e.target.value}})}
+                    placeholder="AB1234567X / DVLA-XXX-YYY / ecc."
+                    maxLength={30}
                   />
                 </div>
                 <div className="space-y-1">
                   <Label>Categoria</Label>
-                  <Select 
-                    value={nuovoCliente.patente.categoria} 
-                    onValueChange={(v) => setNuovoCliente({...nuovoCliente, patente: {...nuovoCliente.patente, categoria: v}})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AM">AM</SelectItem>
-                      <SelectItem value="A1">A1</SelectItem>
-                      <SelectItem value="A2">A2</SelectItem>
-                      <SelectItem value="A">A</SelectItem>
-                      <SelectItem value="B">B</SelectItem>
-                      <SelectItem value="B1">B1</SelectItem>
-                      <SelectItem value="BE">BE</SelectItem>
-                      <SelectItem value="C">C</SelectItem>
-                      <SelectItem value="D">D</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input 
+                    value={nuovoCliente.patente.categoria}
+                    onChange={(e) => setNuovoCliente({...nuovoCliente, patente: {...nuovoCliente.patente, categoria: e.target.value.toUpperCase()}})}
+                    placeholder="B, A, C, D, US Class C..."
+                    className="uppercase"
+                    maxLength={20}
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label>Rilasciata da</Label>
                   <Input 
                     value={nuovoCliente.patente.rilasciata_da}
                     onChange={(e) => setNuovoCliente({...nuovoCliente, patente: {...nuovoCliente.patente, rilasciata_da: e.target.value}})}
-                    placeholder="MCTC Roma"
+                    placeholder="MCTC Roma / DVLA UK / DMV California..."
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Paese di rilascio</Label>
+                  <Input 
+                    value={nuovoCliente.patente.paese || ''}
+                    onChange={(e) => setNuovoCliente({...nuovoCliente, patente: {...nuovoCliente.patente, paese: e.target.value}})}
+                    placeholder="Italia / UK / USA / Francia..."
                   />
                 </div>
                 <div className="space-y-1">
@@ -827,7 +823,11 @@ export default function AdminClientiPage() {
               </div>
               <div className="space-y-1">
                 <Label>Rilasciata da</Label>
-                <Input value={editClientData.patente?.rilasciata_da || ''} onChange={e => setEditClientData({...editClientData, patente: {...editClientData.patente, rilasciata_da: e.target.value}})} />
+                <Input value={editClientData.patente?.rilasciata_da || ''} onChange={e => setEditClientData({...editClientData, patente: {...editClientData.patente, rilasciata_da: e.target.value}})} placeholder="MCTC / DVLA / DMV..." />
+              </div>
+              <div className="space-y-1">
+                <Label>Paese di rilascio</Label>
+                <Input value={editClientData.patente?.paese || ''} onChange={e => setEditClientData({...editClientData, patente: {...editClientData.patente, paese: e.target.value}})} placeholder="Italia / UK / USA / ..." />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
