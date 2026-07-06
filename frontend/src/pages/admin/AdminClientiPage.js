@@ -690,7 +690,6 @@ export default function AdminClientiPage() {
                   const key = `immagine_${lato}`;
                   const img = nuovoCliente.documento_identita?.[key];
                   const inputId = `doc-${lato}-input`;
-                  const cameraId = `doc-${lato}-camera`;
                   const handleFile = (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
@@ -729,13 +728,9 @@ export default function AdminClientiPage() {
                         </div>
                       )}
                       <input id={inputId} type="file" accept="image/*" onChange={handleFile} className="hidden" data-testid={`upload-doc-${lato}`} />
-                      <input id={cameraId} type="file" accept="image/*" capture="environment" onChange={handleFile} className="hidden" data-testid={`camera-doc-${lato}`} />
                       <div className="flex gap-2">
-                        <Button type="button" size="sm" variant="outline" className="flex-1" onClick={() => document.getElementById(inputId).click()}>
+                        <Button type="button" size="sm" variant="outline" className="w-full" onClick={() => document.getElementById(inputId).click()}>
                           Carica file
-                        </Button>
-                        <Button type="button" size="sm" variant="outline" className="flex-1" onClick={() => document.getElementById(cameraId).click()}>
-                          Scansiona
                         </Button>
                       </div>
                     </div>
