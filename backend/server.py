@@ -2530,6 +2530,7 @@ async def admin_create_cliente(data: dict, admin: dict = Depends(get_admin_user)
         "stato": data.get("stato", "Italia"),
         "cellulare": data.get("cellulare", ""),
         "patente": data.get("patente", {}),
+        "documento_identita": data.get("documento_identita", {}),
         # Carta di credito (opzionale)
         "carta_credito": {
             "circuito": carta_credito.get("circuito", ""),
@@ -2558,7 +2559,7 @@ async def update_cliente(cliente_id: str, data: dict, admin: dict = Depends(get_
     allowed_fields = [
         "nome", "cognome", "data_nascita", "luogo_nascita", "codice_fiscale",
         "indirizzo", "comune", "provincia", "cap", "stato", "cellulare",
-        "patente", "password_chiaro", "carta_credito"
+        "patente", "password_chiaro", "carta_credito", "documento_identita"
     ]
     update_data = {k: v for k, v in data.items() if k in allowed_fields}
     

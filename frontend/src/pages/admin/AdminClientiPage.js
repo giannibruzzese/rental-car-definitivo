@@ -49,7 +49,15 @@ export default function AdminClientiPage() {
       categoria: 'B',
       rilasciata_da: '',
       data_rilascio: '',
-      data_scadenza: ''
+      data_scadenza: '',
+      paese: ''
+    },
+    // Documento d'identità (immagini base64)
+    documento_identita: {
+      tipo: 'Carta d\'identità',
+      numero: '',
+      immagine_fronte: '',
+      immagine_retro: ''
     },
     // Carta di credito (opzionale)
     carta_credito: {
@@ -645,7 +653,96 @@ export default function AdminClientiPage() {
               </div>
             </div>
 
-            {/* Carta di Credito (Opzionale) */}
+            {/* Documento d'Identità (con upload/scanner) */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-blue-700 border-b pb-1 flex items-center gap-2">
+                <FileText className="w-4 h-4" /> Documento d'Identità
+                <span className="text-xs font-normal text-slate-500">(carica o scansiona)</span>
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Tipo documento</Label>
+                  <Select 
+                    value={nuovoCliente.documento_identita?.tipo || "Carta d'identità"}
+                    onValueChange={(v) => setNuovoCliente({...nuovoCliente, documento_identita: {...nuovoCliente.documento_identita, tipo: v}})}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Carta d'identità">Carta d'identità</SelectItem>
+                      <SelectItem value="Patente">Patente</SelectItem>
+                      <SelectItem value="Passaporto">Passaporto</SelectItem>
+                      <SelectItem value="Altro">Altro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Numero documento</Label>
+                  <Input 
+                    value={nuovoCliente.documento_identita?.numero || ''}
+                    onChange={(e) => setNuovoCliente({...nuovoCliente, documento_identita: {...nuovoCliente.documento_identita, numero: e.target.value}})}
+                    placeholder="AB1234567"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {['fronte', 'retro'].map(lato => {
+                  const key = `immagine_${lato}`;
+                  const img = nuovoCliente.documento_identita?.[key];
+                  const inputId = `doc-${lato}-input`;
+                  const cameraId = `doc-${lato}-camera`;
+                  const handleFile = (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                      toast.error(`Immagine troppo grande (max 5MB). Dimensione: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      setNuovoCliente(prev => ({
+                        ...prev, 
+                        documento_identita: {...prev.documento_identita, [key]: ev.target.result}
+                      }));
+                    };
+                    reader.readAsDataURL(file);
+                  };
+                  return (
+                    <div key={lato} className="space-y-2 border border-slate-200 rounded-lg p-3 bg-slate-50">
+                      <Label className="capitalize font-semibold">Lato {lato}</Label>
+                      {img ? (
+                        <div className="relative">
+                          <img src={img} alt={`Documento ${lato}`} className="w-full h-32 object-contain bg-white border border-slate-200 rounded" />
+                          <button 
+                            type="button"
+                            onClick={() => setNuovoCliente(prev => ({...prev, documento_identita: {...prev.documento_identita, [key]: ''}}))}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                            data-testid={`remove-doc-${lato}`}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="h-32 border-2 border-dashed border-slate-300 rounded flex flex-col items-center justify-center text-slate-400 text-xs">
+                          <FileText className="w-8 h-8 mb-1" />
+                          <span>Nessuna immagine</span>
+                        </div>
+                      )}
+                      <input id={inputId} type="file" accept="image/*" onChange={handleFile} className="hidden" data-testid={`upload-doc-${lato}`} />
+                      <input id={cameraId} type="file" accept="image/*" capture="environment" onChange={handleFile} className="hidden" data-testid={`camera-doc-${lato}`} />
+                      <div className="flex gap-2">
+                        <Button type="button" size="sm" variant="outline" className="flex-1" onClick={() => document.getElementById(inputId).click()}>
+                          Carica file
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" className="flex-1" onClick={() => document.getElementById(cameraId).click()}>
+                          Scansiona
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
             <div className="space-y-3">
               <h3 className="font-semibold text-blue-700 border-b pb-1 flex items-center gap-2">
                 <CreditCard className="w-4 h-4" /> Carta di Credito 
