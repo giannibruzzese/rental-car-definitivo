@@ -1330,7 +1330,7 @@ export default function ContrattoStampaPage() {
                         <span className="text-gray-600">Km percorsi:</span>
                         <span className="font-semibold">{p.rientro_km_percorsi || 0}</span>
                       </div>
-                      <p>Km inclusi totali: <strong>{p.km_inclusi_totali}</strong></p>
+                      <p>Km inclusi totali: <strong>{p.km_tipo === 'illimitati' || p.km_inclusi_totali === 'ILLIMITATI' ? 'ILLIMITATI' : p.km_inclusi_totali}</strong></p>
                       <p>Km eccedenza: <strong>{p.rientro_km_eccedenza || 0}</strong> — Importo: <strong>€{(p.rientro_importo_km_eccedenza || 0).toFixed(2)}</strong></p>
                       <div className="flex items-center gap-1">
                         <span className="text-gray-600 w-32">Tacche carburante:</span>
@@ -1342,7 +1342,7 @@ export default function ContrattoStampaPage() {
                     <>
                       <p>Data/ora rientro effettivo: {p.rientro_data ? `${formatDateIT(p.rientro_data)} ${p.rientro_ora || ''}` : '_____________________'}</p>
                       <p>Km entrata: {p.rientro_km_entrata || '_________'} Km percorsi: {p.rientro_km_percorsi || '_________'}</p>
-                      <p>Km inclusi totali: {p.km_inclusi_totali}</p>
+                      <p>Km inclusi totali: {p.km_tipo === 'illimitati' || p.km_inclusi_totali === 'ILLIMITATI' ? 'ILLIMITATI' : p.km_inclusi_totali}</p>
                       <p>Km eccedenza: {p.rientro_km_eccedenza || '_________'} Importo km eccedenza: €{p.rientro_importo_km_eccedenza?.toFixed(2) || '_________'}</p>
                       <p>Tacche carburante entrata: {p.rientro_tacche_carburante || '_____'} / 8</p>
                     </>

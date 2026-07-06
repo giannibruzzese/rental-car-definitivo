@@ -2226,8 +2226,15 @@ async def register_check_out(prenotazione_id: str, data: CheckOutData, admin: di
         raise HTTPException(status_code=400, detail="Check-in non ancora effettuato")
     
     km_percorsi = data.km_entrata - prenotazione["check_in"]["km_uscita"]
-    km_eccedenza = max(0, km_percorsi - prenotazione["km_inclusi_totali"])
-    importo_km_eccedenza = km_eccedenza * prenotazione["prezzo_km_extra"]
+    # Handle unlimited km case
+    km_inclusi_val = prenotazione.get("km_inclusi_totali")
+    km_tipo = prenotazione.get("km_tipo")
+    if km_tipo == "illimitati" or km_inclusi_val == "ILLIMITATI" or isinstance(km_inclusi_val, str):
+        km_eccedenza = 0
+        importo_km_eccedenza = 0
+    else:
+        km_eccedenza = max(0, km_percorsi - (km_inclusi_val or 0))
+        importo_km_eccedenza = km_eccedenza * (prenotazione.get("prezzo_km_extra") or 0)
     
     totale_addebiti = (
         data.danni_veicolo +
@@ -2916,6 +2923,10 @@ def generate_contract_pdf(prenotazione: dict, cliente: dict, condizioni_testo: s
     elements.append(Paragraph("III. VEICOLO OGGETTO DEL NOLEGGIO", section_style))
     
     check_in = prenotazione.get('check_in') or {}
+    _km_val_inline = prenotazione.get('km_inclusi_totali')
+    _is_unl = prenotazione.get('km_tipo') == 'illimitati' or _km_val_inline == 'ILLIMITATI' or isinstance(_km_val_inline, str)
+    _km_txt = 'ILLIMITATI' if _is_unl else str(_km_val_inline or '_____')
+    _prezzo_km_txt = 'N/A' if _is_unl else f"€{prenotazione.get('prezzo_km_extra', 0)}/km"
     veicolo_data = [
         [
             Paragraph(f"<b>Marca/Modello:</b> {prenotazione.get('veicolo_marca', '')} {prenotazione.get('veicolo_modello', '')}", small_style),
@@ -2929,8 +2940,8 @@ def generate_contract_pdf(prenotazione: dict, cliente: dict, condizioni_testo: s
         ],
         [
             Paragraph(f"<b>Km uscita:</b> {check_in.get('km_uscita', '_____')}", small_style),
-            Paragraph(f"<b>Km inclusi:</b> {prenotazione.get('km_inclusi_totali', '_____')}", small_style),
-            Paragraph(f"<b>Prezzo km extra:</b> €{prenotazione.get('prezzo_km_extra', 0)}/km", small_style),
+            Paragraph(f"<b>Km inclusi:</b> {_km_txt}", small_style),
+            Paragraph(f"<b>Prezzo km extra:</b> {_prezzo_km_txt}", small_style),
         ]
     ]
     veicolo_table = Table(veicolo_data, colWidths=[6*cm, 6*cm, 6*cm])
@@ -2947,14 +2958,18 @@ def generate_contract_pdf(prenotazione: dict, cliente: dict, condizioni_testo: s
     elements.append(Spacer(1, 8))
     elements.append(Paragraph("IV. DURATA & CHILOMETRAGGIO", section_style))
     
+    km_val = prenotazione.get('km_inclusi_totali')
+    is_unlimited = prenotazione.get('km_tipo') == 'illimitati' or km_val == 'ILLIMITATI' or isinstance(km_val, str)
+    km_display = 'ILLIMITATI' if is_unlimited else f"{km_val} km"
+    prezzo_km_display = 'N/A' if is_unlimited else f"€{prenotazione.get('prezzo_km_extra', 0)}/km"
     durata_data = [
         [
             Paragraph(f"<b>Periodo:</b> Dal {prenotazione['data_ritiro']} {prenotazione['ora_ritiro']} al {prenotazione['data_riconsegna']} {prenotazione['ora_riconsegna']}", small_style),
             Paragraph(f"<b>Durata:</b> {prenotazione['durata_giorni']} giorni", small_style),
         ],
         [
-            Paragraph(f"<b>Km inclusi totali:</b> {prenotazione['km_inclusi_totali']} km", small_style),
-            Paragraph(f"<b>Prezzo km extra:</b> €{prenotazione['prezzo_km_extra']}/km", small_style),
+            Paragraph(f"<b>Km inclusi totali:</b> {km_display}", small_style),
+            Paragraph(f"<b>Prezzo km extra:</b> {prezzo_km_display}", small_style),
         ],
         [
             Paragraph(f"<b>Acconto:</b> €{prenotazione.get('acconto', 0):.2f}", small_style),
