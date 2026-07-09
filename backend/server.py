@@ -1805,25 +1805,7 @@ async def admin_create_prenotazione(data: dict, admin: dict = Depends(get_admin_
     data_ritiro = data.get("data_ritiro")
     data_riconsegna = data.get("data_riconsegna")
     
-    # Check vehicle availability for the period (if not generic vehicle)
-    if not is_veicolo_generico and veicolo_id != "generico":
-        conflicting = await db.prenotazioni.find_one({
-            "veicolo_id": veicolo_id,
-            "status": {"$nin": ["annullata", "chiuso"]},
-            "$or": [
-                {"data_ritiro": {"$gte": data_ritiro, "$lte": data_riconsegna}},
-                {"data_riconsegna": {"$gte": data_ritiro, "$lte": data_riconsegna}},
-                {"$and": [
-                    {"data_ritiro": {"$lte": data_ritiro}},
-                    {"data_riconsegna": {"$gte": data_riconsegna}}
-                ]}
-            ]
-        })
-        if conflicting:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Veicolo già prenotato per il periodo {data_ritiro} - {data_riconsegna}. Scegli un altro veicolo o un altro periodo."
-            )
+    # (Hour-precision conflict check with 1h buffer is done below, after fetching vehicle info)
     
     # Get client info (or set placeholder for calendar block)
     if is_blocco_calendario:
