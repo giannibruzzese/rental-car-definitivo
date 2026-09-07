@@ -765,7 +765,7 @@ export default function AdminImpostazioniPage() {
                     {franchigie.map((f) => (
                       <TableRow key={f.id}>
                         <TableCell className="font-medium">{f.nome}</TableCell>
-                        <TableCell className="text-sm text-slate-500 max-w-xs">{f.descrizione}</TableCell>
+                        <TableCell className="text-sm text-slate-500 max-w-xs">{(f.descrizione || '').replace(/€500\b/g, '€1000')}</TableCell>
                         <TableCell>
                           <Input 
                             type="number" 
