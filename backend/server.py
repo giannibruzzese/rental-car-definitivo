@@ -3333,8 +3333,8 @@ async def seed_data():
             {
                 "id": str(uuid.uuid4()),
                 "nome": "ATTIVAZIONE KASKO CON FRANCHIGIA DANNI",
-                "descrizione": "Copertura danni con franchigia massima €500",
-                "importo_massimo": 500.00,
+                "descrizione": "Copertura danni con franchigia massima €1000",
+                "importo_massimo": 1000.00,
                 "costo_giornaliero": 15.00,
                 "codice": "KASKO",
                 "created_at": datetime.now(timezone.utc).isoformat()
